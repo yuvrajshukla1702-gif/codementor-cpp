@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Settings {
+  id               Int      @id @default(1)
+  leetcodeUsername String   @default("sM1BAu3vUo")
+  geminiApiKey     String   @default("")
+  cursorApiKey     String   @default("")
+  leetcodeSession  String   @default("")
+  hackerrankUsername String @default("yuvrajshukla1702")
+  tutorTone        String   @default("hinglish")
+  updatedAt        DateTime @updatedAt
+}
+
+model HrSnapshot {
+  id         Int      @id @default(1)
+  username   String   @default("yuvrajshukla1702")
+  name       String   @default("")
+  scoresJson String   @default("[]")
+  updatedAt  DateTime @updatedAt
+}
+
+model HrSolved {
+  id       String   @id @default(cuid())
+  slug     String   @unique
+  title    String
+  syncedAt DateTime @default(now())
+}
+
+model ProblemProgress {
+  id            String   @id @default(cuid())
+  problemId     String   @unique
+  status        String   @default("not_started") // not_started | attempted | solved | lc_solved
+  attempts      Int      @default(0)
+  bestCode      String   @default("")
+  lastHintLevel Int      @default(0)
+  solvedAt      DateTime?
+  updatedAt     DateTime @updatedAt
+}
+
+model Attempt {
+  id         String   @id @default(cuid())
+  problemId  String
+  code       String
+  passed     Boolean  @default(false)
+  judgeLog   String   @default("")
+  tutorReply String   @default("")
+  hintLevel  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([problemId])
+}
+
+model LcSolved {
+  id        String   @id @default(cuid())
+  titleSlug String   @unique
+  title     String
+  lang      String   @default("cpp")
+  syncedAt  DateTime @default(now())
+}
+
+model ShortAnswerAttempt {
+  id         String   @id @default(cuid())
+  section    String
+  questionId String
+  answer     String
+  score      Int      @default(0)
+  feedback   String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@index([section, questionId])
+}
+
+model WeeklyPlan {
+  id        Int      @id @default(1)
+  payload   String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
