@@ -54,7 +54,9 @@ export function PracticeStudio({
   defaultTab?: "watch" | "teach" | "solution" | "code" | "feedback" | "lecture";
 }) {
   const [tab, setTab] = useState<"watch" | "teach" | "solution" | "code" | "feedback" | "lecture">(defaultTab);
-  const [solTier, setSolTier] = useState<SolutionTier>("easy");
+  const [solTier, setSolTier] = useState<SolutionTier>(
+    () => bundle.visibleTiers[0] ?? "best"
+  );
   const [solLang, setSolLang] = useState<VoiceLang>("hinglish");
   const [code, setCode] = useState(problem.starterCode);
   const [busy, setBusy] = useState(false);
@@ -87,11 +89,12 @@ export function PracticeStudio({
     return `Passed ${judge.passedCount}/${judge.total}. Details: ${JSON.stringify(judge.details)}`;
   }, [judge]);
 
-  const { guide, tiers, script } = bundle;
+  const { guide, tiers, script, visibleTiers, handCrafted } = bundle;
   const solution = tiers[solTier];
   const lecture = bundle.lectures[solTier];
   const guideText =
     solLang === "english" ? guide.english : solLang === "hindi" ? guide.hindi : guide.hinglish;
+  const tierButtons = TIER_ORDER.filter((id) => visibleTiers.includes(id));
 
   async function runJudge() {
     setBusy(true);
@@ -280,7 +283,7 @@ export function PracticeStudio({
             {(tab === "lecture" || tab === "solution") && (
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="text-xs text-[var(--muted)]">Approach:</span>
-                {TIER_ORDER.map((id) => {
+                {tierButtons.map((id) => {
                   const t = tiers[id];
                   const active = solTier === id;
                   return (
@@ -363,7 +366,9 @@ export function PracticeStudio({
                   </pre>
                 </section>
                 <p className="text-xs text-[var(--muted)]">
-                  Tip: start with Easy, then Medium, then Best. Same problem, three levels.
+                  {handCrafted
+                    ? "Tip: start with Easy, then Medium, then Best. Same problem, three levels."
+                    : "Best is interview-ready. Hand-written Easy/Medium are available on the core path (Two Sum → …)."}
                 </p>
               </div>
             )}

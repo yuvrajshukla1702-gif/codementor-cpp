@@ -34,6 +34,7 @@ export function synthesizeTeacherShow(problem: Problem): TeacherShowScript {
     hinglish: string;
     english: string;
     hindi: string;
+    cells?: number[] | string[];
     hi?: number[];
     pointers?: Record<string, number>;
     map?: Record<string, string | number>;

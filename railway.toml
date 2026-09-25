@@ -1,0 +1,8 @@
+# Railway — full stack with g++ (Dockerfile)
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"

@@ -1,22 +1,29 @@
 # CodeMentor C++
 
-Personal DSA + interview prep platform: **C++ judge**, Easy / Medium / Best solutions, Hinglish course lessons, Code walk, LeetCode / HackerRank sync.
+Personal DSA + interview prep: local **C++ judge**, Easy / Medium / Best solutions, Hinglish course lessons, Code walk, LeetCode / HackerRank sync.
 
-Built with **Next.js 15 · TypeScript · React 19 · Tailwind CSS · Prisma (SQLite) · Monaco · Edge TTS · Ollama (optional) · g++**.
+**Live demo:** https://codementor-cpp.vercel.app · **Repo:** https://github.com/yuvrajshukla1702-gif/codementor-cpp
+
+> Vercel hosts the UI + lessons + TTS. Local / Docker / Railway needed for the real `g++` judge.
+
+Built with **Next.js 15 · TypeScript · React 19 · Tailwind CSS · Prisma (SQLite) · Monaco · Edge TTS · g++**.
+
+![CodeMentor lesson player](docs/demo.gif)
 
 ## Features
 
 - Practice studio with local **g++** compile + test harness
-- **Easy / Medium / Best** C++ for every problem (hand-written for core set)
-- **Lesson** videos: mentor avatar, chalkboard chapters, karaoke captions, voice
+- **Easy / Medium / Best** C++ for the core path (hand-written); Best always ready elsewhere
+- **Lesson** videos: mentor avatar, chalkboard chapters, karaoke captions, voice, window whiteboard
 - **Code walk**: line-by-line typing with mentor desk
-- **Today** learning path + streak on the home page
+- **Today** learning path + streak ("What should I do today?" after Two Sum)
 - LeetCode submit (session cookie) + HackerRank warmup set
 
 ## Quick start (local)
 
 ```bash
-cd C:\Dev\codementor   # or your clone path
+git clone https://github.com/yuvrajshukla1702-gif/codementor-cpp.git
+cd codementor-cpp
 npm install
 npx prisma db push
 npm run dev
@@ -26,27 +33,33 @@ Open http://localhost:3000
 
 **Requires:** Node 20+, `g++` on PATH (MinGW / Xcode CLI / build-essential).
 
-### Production build smoke test
+### Production smoke test
 
 ```bash
 npm run build
 npm start
 ```
 
-## Docker (full stack with g++)
+## Deploy
+
+### Docker / VPS / Railway (full judge)
 
 ```bash
 docker build -t codementor .
 docker run --rm -p 3000:3000 -v codementor-data:/app/prisma codementor
 ```
 
-Then open http://localhost:3000
+Or connect the GitHub repo to **Railway** — `railway.toml` + `Dockerfile` are ready (`g++` included).
 
-> **Note:** Pure Vercel serverless cannot run `g++`. Use Docker / a VPS / Railway for the real judge. Vercel is fine for a UI-only demo if you disable judge routes.
+### Vercel (UI demo)
+
+```bash
+npx vercel --prod
+```
+
+> Pure Vercel serverless **cannot** run `g++`. Use Docker / Railway / a VPS for the real judge. Vercel is fine for a portfolio UI demo.
 
 ## Environment (optional)
-
-Copy `.env.example` if present, or set:
 
 | Variable | Purpose |
 |----------|---------|
@@ -55,16 +68,18 @@ Copy `.env.example` if present, or set:
 | `GEMINI_API_KEY` | Optional Gemini tutor |
 | `LEETCODE_SESSION` | Or paste in Settings UI for Submit |
 
-Tutor always works offline with the built-in hint ladder; keys only upgrade chat quality.
+Tutor always works offline with the built-in hint ladder.
 
 ## Resume project blurb (copy)
 
 **CodeMentor C++** — Next.js, TypeScript, React, Tailwind, Prisma, Monaco  
 DSA practice app with local C++ judge, Easy/Medium/Best solutions, Hinglish TTS course lessons, and LeetCode sync.
 
+Skills you should be ready to explain: Next.js App Router, Prisma/SQLite, Monaco embedding, spawning `g++` safely, Edge TTS caching, course player state (chapters / seek / prefetch).
+
 ## Learning path
 
-Home → **Today**: do the next spine problem (Two Sum → … → Coin Change / HR warmups), mark done, keep a streak.
+Home → **Today**: Two Sum → Contains Duplicate → … → Coin Change / HR warmups. Mark done, keep a streak.
 
 ## License
 

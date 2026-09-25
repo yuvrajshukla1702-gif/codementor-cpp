@@ -123,11 +123,11 @@ export function TeacherShow({
 
   useEffect(() => {
     setStepDurations(script.steps.map((s) => estimateSecs(lineOf(s, lang), speed)));
-    prefetchSpeech(
-      script.steps.slice(0, 4).map((s) => lineOf(s, lang)),
-      lang,
-      speed
-    );
+    // Prefetch first beats immediately, then the rest so first play rarely waits.
+    const lines = script.steps.map((s) => lineOf(s, lang));
+    prefetchSpeech(lines.slice(0, 5), lang, speed);
+    const t = window.setTimeout(() => prefetchSpeech(lines.slice(5), lang, speed), 400);
+    return () => window.clearTimeout(t);
   }, [script, lang, speed]);
 
   function hardStop() {
@@ -296,7 +296,7 @@ export function TeacherShow({
   }
 
   function seekByTime(ratio: number) {
-    let target = ratio * totalSecs;
+    const target = ratio * totalSecs;
     let idx = 0;
     let acc = 0;
     for (let s = 0; s < stepDurations.length; s++) {
@@ -392,7 +392,35 @@ export function TeacherShow({
               )}
 
               {cells.length > 0 && (
-                <div className="relative mb-4 flex flex-wrap justify-center gap-2.5 sm:gap-3">
+                <div className="relative mb-4 w-full max-w-3xl">
+                  {step.window && (
+                    <svg
+                      className="pointer-events-none absolute inset-x-0 -top-3 h-6 w-full text-[#3ea6ff]/80"
+                      viewBox="0 0 100 12"
+                      preserveAspectRatio="none"
+                      aria-hidden
+                    >
+                      <path
+                        d={`M ${8 + (step.window[0] / Math.max(1, cells.length - 1)) * 84} 10
+                            L ${8 + (step.window[0] / Math.max(1, cells.length - 1)) * 84} 2
+                            L ${8 + (step.window[1] / Math.max(1, cells.length - 1)) * 84} 2
+                            L ${8 + (step.window[1] / Math.max(1, cells.length - 1)) * 84} 10`}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                      />
+                      <text
+                        x={8 + ((step.window[0] + step.window[1]) / 2 / Math.max(1, cells.length - 1)) * 84}
+                        y="11"
+                        textAnchor="middle"
+                        className="fill-[#3ea6ff]"
+                        style={{ fontSize: 3.5 }}
+                      >
+                        window
+                      </text>
+                    </svg>
+                  )}
+                  <div className="relative flex flex-wrap justify-center gap-2.5 sm:gap-3">
                   {focusIdx >= 0 && (
                     <div
                       className="cm-laser pointer-events-none absolute -left-8 top-1/2 hidden h-0.5 w-8 bg-gradient-to-r from-transparent to-[var(--accent)] sm:block"
@@ -441,6 +469,7 @@ export function TeacherShow({
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               )}
 

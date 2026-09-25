@@ -595,7 +595,7 @@ ${bestCode}`);
   };
 }
 
-function stripClassInner(starter: string) {
+function _stripClassInner(starter: string) {
   const m = starter.match(/public:\s*([\s\S]*?)\{\s*[\s\S]*?\}\s*\};?\s*$/);
   if (m) {
     const sig = starter.match(
@@ -617,8 +617,19 @@ function guessEasyReturn(problem: Problem) {
   return "        return {};";
 }
 
-function guessEasyBody(problem: Problem) {
+function _guessEasyBody(problem: Problem) {
   return guessEasyReturn(problem).trim();
+}
+
+export function hasHandTiers(problemId: string) {
+  return Boolean(HAND[problemId]);
+}
+
+/** Tiers safe to show in UI — hide thin auto Easy stubs. */
+export function visibleTiersForProblem(problem: Problem): SolutionTier[] {
+  if (HAND[problem.id]) return ["easy", "medium", "best"];
+  // Auto-synthesized Easy is the same Best code with a comment — hide it.
+  return ["medium", "best"];
 }
 
 export function tiersForProblem(problem: Problem) {
