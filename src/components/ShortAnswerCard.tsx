@@ -34,39 +34,41 @@ export function ShortAnswerCard({ q }: { q: BankQuestion }) {
   }
 
   return (
-    <article className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
-      <h3 className="font-[family-name:var(--font-display)] text-lg text-[var(--ink)]">{q.title}</h3>
-      <p className="mt-2 text-sm text-[var(--muted)]">{q.prompt}</p>
+    <article className="card p-4 sm:p-5">
+      <h3 className="font-display text-lg text-[var(--ink)]">{q.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{q.prompt}</p>
       {q.kind === "mcq" && q.options && (
         <div className="mt-3 space-y-2">
           {q.options.map((o) => (
             <label key={o} className="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="radio" name={q.id} checked={picked === o} onChange={() => setPicked(o)} />
+              <input
+                type="radio"
+                name={q.id}
+                checked={picked === o}
+                onChange={() => setPicked(o)}
+                className="accent-[var(--accent)]"
+              />
               {o}
             </label>
           ))}
-          <button onClick={checkMcq} className="mt-2 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-[#1a1208]">
+          <button onClick={checkMcq} className="btn btn-primary btn-sm mt-2">
             Check
           </button>
-          {mcqResult && <p className="text-sm text-[var(--ink)]">{mcqResult}</p>}
+          {mcqResult && <p className="cm-fade text-sm text-[var(--ink)]">{mcqResult}</p>}
         </div>
       )}
       {q.kind === "short" && (
         <div className="mt-3 space-y-2">
           <textarea
-            className="min-h-28 w-full rounded-md border border-[var(--line)] bg-[#0f1419] p-3 text-sm text-[var(--ink)]"
+            className="input min-h-28 text-sm"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             placeholder="Write your answer…"
           />
-          <button
-            disabled={busy || !answer.trim()}
-            onClick={grade}
-            className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-[#1a1208] disabled:opacity-50"
-          >
+          <button disabled={busy || !answer.trim()} onClick={grade} className="btn btn-primary btn-sm">
             {busy ? "Grading…" : "Get teacher feedback"}
           </button>
-          {score !== null && <p className="text-sm text-[var(--accent)]">Score: {score}/10</p>}
+          {score !== null && <p className="text-sm font-medium text-[var(--accent)]">Score: {score}/10</p>}
           {feedback && <pre className="whitespace-pre-wrap text-sm text-[var(--muted)]">{feedback}</pre>}
         </div>
       )}

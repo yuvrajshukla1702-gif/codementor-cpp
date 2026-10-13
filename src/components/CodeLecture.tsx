@@ -284,7 +284,7 @@ export function CodeLecture({ script }: { script: CodeLectureScript }) {
                     data-focus={on ? "1" : "0"}
                     className={`flex gap-3 rounded px-1 transition-all duration-300 ${
                       on
-                        ? "cm-cell-lift bg-[#ffa116]/18 text-white shadow-[inset_3px_0_0_#ffa116]"
+                        ? "cm-cell-lift bg-[#c8f65d]/12 text-white shadow-[inset_3px_0_0_#c8f65d]"
                         : "text-[#c8d0da]"
                     }`}
                   >
@@ -292,7 +292,7 @@ export function CodeLecture({ script }: { script: CodeLectureScript }) {
                     <span className="whitespace-pre">
                       {show || " "}
                       {caret && (
-                        <span className="cm-pulse inline-block w-[2px] bg-[#ffa116] align-middle">&nbsp;</span>
+                        <span className="cm-pulse inline-block w-[2px] bg-[#c8f65d] align-middle">&nbsp;</span>
                       )}
                     </span>
                   </div>
@@ -301,7 +301,7 @@ export function CodeLecture({ script }: { script: CodeLectureScript }) {
             </div>
 
             {!playing && (
-              <span className="absolute left-1/2 top-1/2 z-10 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#ff0033] text-xl text-white shadow-lg">
+              <span className="absolute left-1/2 top-1/2 z-10 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[var(--accent)] text-xl text-[var(--accent-ink)] shadow-lg">
                 {atEnd ? "↻" : "▶"}
               </span>
             )}
@@ -326,7 +326,7 @@ export function CodeLecture({ script }: { script: CodeLectureScript }) {
                 className="text-sm font-medium"
               />
               {step?.lineText && (
-                <pre className="cm-fade mt-3 overflow-x-auto rounded border border-emerald-400/20 bg-emerald-950/40 px-2 py-1.5 font-mono text-[11px] text-[#d7ffe4]">
+                <pre className="cm-fade mt-3 overflow-x-auto rounded border border-[#c8f65d]/25 bg-[#c8f65d]/[0.07] px-2 py-1.5 font-mono text-[11px] text-[#e8ffb0]">
                   {step.lineText}
                 </pre>
               )}
@@ -336,7 +336,7 @@ export function CodeLecture({ script }: { script: CodeLectureScript }) {
 
         <div className="border-t border-white/10 bg-[#0c0e12] px-3 pb-2 pt-2">
           <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/15">
-            <div className="h-full rounded-full bg-[#ff0033] transition-[width] duration-200" style={{ width: `${progress}%` }} />
+            <div className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-200" style={{ width: `${progress}%` }} />
           </div>
           <div className="flex flex-wrap items-center gap-1">
             <button

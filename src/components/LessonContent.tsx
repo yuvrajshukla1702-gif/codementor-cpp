@@ -6,29 +6,29 @@ import { useMemo, useState } from "react";
 export function LessonContent({ source }: { source: string }) {
   const blocks = useMemo(() => parseBlocks(source), [source]);
   return (
-    <div className="lesson-prose space-y-3 text-sm leading-relaxed text-[var(--muted)]">
+    <div className="lesson-prose space-y-3.5 text-[14.5px] leading-[1.7] text-[var(--muted)]">
       {blocks.map((b, i) => {
         if (b.type === "h1")
           return (
-            <h2 key={i} className="font-[family-name:var(--font-display)] text-2xl text-[var(--ink)]">
+            <h2 key={i} className="font-display text-[1.7rem] leading-tight tracking-[-0.03em] text-[var(--ink)]">
               {b.text}
             </h2>
           );
         if (b.type === "h2")
           return (
-            <h3 key={i} className="pt-2 font-[family-name:var(--font-display)] text-lg text-[var(--ink)]">
+            <h3 key={i} className="font-display pt-3 text-lg tracking-[-0.02em] text-[var(--ink)]">
               {b.text}
             </h3>
           );
         if (b.type === "code")
           return (
-            <pre key={i} className="overflow-x-auto rounded-lg border border-[var(--line)] bg-[#0a0e13] p-3 font-mono text-xs text-[var(--accent-2)]">
+            <pre key={i} className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 text-[12.5px] leading-relaxed text-[#d7e0ee]">
               <code>{b.text}</code>
             </pre>
           );
         if (b.type === "ul")
           return (
-            <ul key={i} className="list-disc space-y-1 pl-5">
+            <ul key={i} className="list-disc space-y-1.5 pl-5 marker:text-[var(--faint)]">
               {b.items.map((it, j) => (
                 <li key={j}>{renderInline(it)}</li>
               ))}
@@ -170,8 +170,8 @@ export function QuizCard({
   const [picked, setPicked] = useState<Record<number, number | null>>({});
   if (!quiz.length) return null;
   return (
-    <section className="space-y-4 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5">
-      <h3 className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">Check yourself</h3>
+    <section className="card space-y-4 p-5">
+      <h3 className="font-display text-xl text-[var(--ink)]">Check yourself</h3>
       {quiz.map((item, qi) => {
         const choice = picked[qi];
         const revealed = choice !== undefined && choice !== null;
@@ -190,14 +190,14 @@ export function QuizCard({
                     key={oi}
                     type="button"
                     onClick={() => setPicked((p) => ({ ...p, [qi]: oi }))}
-                    className={`rounded-md border px-3 py-2 text-left text-sm transition ${
+                    className={`rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors ${
                       correct
-                        ? "border-[var(--accent-2)] bg-[var(--accent-2)]/10 text-[var(--ink)]"
+                        ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--ink)]"
                         : wrong
-                          ? "border-red-400/50 bg-red-400/10"
+                          ? "border-[rgba(255,107,129,0.5)] bg-[rgba(255,107,129,0.1)]"
                           : selected
-                            ? "border-[var(--accent)] bg-[var(--chip)]"
-                            : "border-[var(--line)] hover:bg-[var(--chip)]"
+                            ? "border-[var(--line-strong)] bg-[var(--chip)]"
+                            : "border-[var(--line)] hover:border-[var(--line-strong)] hover:bg-[var(--panel-2)]"
                     }`}
                   >
                     {opt}
@@ -205,7 +205,7 @@ export function QuizCard({
                 );
               })}
             </div>
-            {revealed && <p className="text-xs text-[var(--accent-2)]">{item.explain}</p>}
+            {revealed && <p className="cm-fade text-xs leading-relaxed text-[var(--accent)]">{item.explain}</p>}
           </div>
         );
       })}

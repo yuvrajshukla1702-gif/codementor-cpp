@@ -1,119 +1,123 @@
 import Link from "next/link";
-import { DailyPath } from "@/components/DailyPath";
-
-const paths = [
-  { href: "/practice/two-sum", label: "Two Sum", hint: "Start here — Easy / Medium / Best + Code walk" },
-  { href: "/practice", label: "All problems", hint: "Editor, local judge, LeetCode submit" },
-  { href: "/learn", label: "Learn DSA", hint: "Topics with lessons before the drill" },
-  { href: "/learn/cpp", label: "C++ track", hint: "Syntax and STL before the hard ones" },
-  { href: "/learn/dsa/hackerrank", label: "HackerRank", hint: "Warmups synced to your profile" },
-  { href: "/progress", label: "Progress", hint: "LeetCode + HackerRank at a glance" },
-];
-
-const SAMPLE = [
-  { n: 12, t: "class Solution {", dim: true },
-  { n: 13, t: "public:", dim: true },
-  { n: 14, t: "    vector<int> twoSum(vector<int>& nums, int target) {", dim: false },
-  { n: 15, t: "        unordered_map<int, int> seen;", focus: true },
-  { n: 16, t: "        for (int i = 0; i < (int)nums.size(); i++) {", dim: false },
-  { n: 17, t: "            int need = target - nums[i];", dim: false },
-  { n: 18, t: "            if (seen.count(need)) return {seen[need], i};", dim: false },
-  { n: 19, t: "            seen[nums[i]] = i;", dim: false },
-  { n: 20, t: "        }", dim: true },
-  { n: 21, t: "        return {};", dim: true },
-];
+import { DailyPath, type SpineMeta } from "@/components/DailyPath";
+import { HeroCta } from "@/components/HeroCta";
+import { HeroWalk } from "@/components/HeroWalk";
+import { Icon, type IconName } from "@/components/ui/icons";
+import { curriculum, getProblem } from "@/lib/curriculum";
+import { LEARNING_SPINE } from "@/lib/learning-path";
 
 export default function HomePage() {
+  const total = Object.keys(curriculum.problems).length;
+  const topicTitle = new Map(curriculum.topics.map((t) => [t.id, t.title]));
+  const meta: SpineMeta = {};
+  for (const s of LEARNING_SPINE) {
+    const p = getProblem(s.id);
+    meta[s.id] = {
+      title: p?.title ?? s.title,
+      difficulty: p?.difficulty ?? "Easy",
+      topic: (p && topicTitle.get(p.topic)) ?? "",
+    };
+  }
+
+  const doors: { href: string; icon: IconName; label: string; hint: string; wide?: boolean }[] = [
+    {
+      href: "/practice/two-sum",
+      icon: "play",
+      label: "Start with Two Sum",
+      hint: "The reference lesson: Easy, Medium and Best solutions, each with a voice-over code walk.",
+      wide: true,
+    },
+    { href: "/practice", icon: "list", label: "All problems", hint: `${total} problems, searchable, with a local judge.` },
+    { href: "/learn", icon: "book", label: "Learn DSA", hint: "Topic lessons before the drill." },
+    { href: "/learn/cpp", icon: "code", label: "C++ track", hint: "Syntax and STL before the hard ones." },
+    { href: "/learn/dsa/hackerrank", icon: "target", label: "HackerRank", hint: "Warm-ups synced to your profile." },
+  ];
+
   return (
     <div className="-mx-3 -mt-3">
-      <section className="home-hero relative min-h-[calc(100vh-3rem)] overflow-hidden">
-        <div className="home-grid home-glow pointer-events-none absolute inset-0" aria-hidden />
+      <section className="home-hero relative overflow-hidden px-5 lg:px-8">
+        <div className="home-grid pointer-events-none absolute inset-0" aria-hidden />
 
-        <div className="relative z-10 mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl items-end gap-10 px-5 pb-14 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8 lg:pb-20">
+        <div className="relative z-10 mx-auto grid max-w-6xl grid-cols-1 gap-14 pb-20 pt-14 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:items-center lg:gap-10 lg:pb-28 lg:pt-24">
           <div>
-            <p className="home-rise font-display text-[clamp(2.75rem,9vw,5.75rem)] leading-[0.92] text-[var(--ink)]">
-              Code<span className="text-[var(--accent)]">Mentor</span>
-            </p>
-            <h1 className="home-rise-delay mt-5 max-w-lg text-xl font-medium leading-snug text-[var(--ink)] md:text-2xl">
-              Learn C++ the way a teacher would explain it — then write it yourself.
+            <span className="chip chip-brand home-rise !h-7 !px-3 !text-xs">
+              <Icon name="sparkles" size={13} />
+              C++ · voice-taught · local judge
+            </span>
+            <h1 className="home-rise-delay mt-6 font-display text-[clamp(2.6rem,6.3vw,5rem)] font-bold leading-[0.98] tracking-[-0.045em]">
+              Don&rsquo;t memorise solutions.
+              <br />
+              <span className="font-serif-accent text-[1.06em] font-normal tracking-[-0.02em] text-[var(--accent)]">Understand</span>{" "}
+              them.
             </h1>
-            <p className="home-rise-delay-2 mt-3 max-w-md text-sm leading-relaxed text-[var(--muted)] md:text-base">
-              Easy, Medium, Best for every problem. Hinglish voice. Line-by-line Code walk. Local judge.
+            <p className="home-rise-delay-2 mt-6 max-w-lg text-base leading-relaxed text-[var(--muted)] md:text-lg">
+              A teacher walks through every line — in English, Hinglish or Hindi. Then you write it yourself and a real
+              C++ judge checks it.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href="/practice/two-sum"
-                className="rounded bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-black transition hover:brightness-110"
-              >
-                Start with Two Sum
-              </Link>
-              <Link
-                href="/practice"
-                className="rounded border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--chip)]"
-              >
-                Browse problems
-              </Link>
-            </div>
+            <HeroCta />
+            <ul className="home-rise-delay-3 mt-9 flex flex-wrap gap-x-6 gap-y-2 text-sm text-[var(--muted)]">
+              {[`${total} problems`, "3 solution tiers", "Line-by-line code walks", "Runs on your machine"].map((t) => (
+                <li key={t} className="inline-flex items-center gap-2">
+                  <Icon name="check" size={14} className="text-[var(--accent)]" strokeWidth={2.4} />
+                  {t}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div
-            className="home-rise-delay home-code-plane relative mt-4 min-h-[220px] overflow-hidden rounded-sm lg:mt-0 lg:min-h-[280px]"
-            aria-hidden
-          >
-            <div className="flex items-center gap-2 border-b border-white/5 px-4 py-2.5">
-              <span className="h-2 w-2 rounded-full bg-[var(--hard)]" />
-              <span className="h-2 w-2 rounded-full bg-[var(--medium)]" />
-              <span className="h-2 w-2 rounded-full bg-[var(--accent-2)]" />
-              <span className="ml-3 font-mono text-[11px] text-[var(--muted)]">two-sum.cpp — Code walk</span>
-            </div>
-            <pre className="overflow-hidden p-4 font-mono text-[12px] leading-6">
-              {SAMPLE.map((line) => (
-                <div
-                  key={line.n}
-                  className={
-                    line.focus
-                      ? "home-scan -mx-4 flex gap-4 px-4 text-[var(--accent)]"
-                      : line.dim
-                        ? "flex gap-4 text-[var(--muted)]/50"
-                        : "flex gap-4 text-[var(--ink)]/80"
-                  }
-                  style={line.focus ? { background: "rgba(255,161,22,0.12)" } : undefined}
-                >
-                  <span className="w-6 shrink-0 select-none text-right text-[var(--muted)]/40">{line.n}</span>
-                  <span>{line.t}</span>
-                </div>
-              ))}
-            </pre>
-            <p className="absolute bottom-4 left-4 right-4 border-l-2 border-[var(--accent)] bg-black/40 px-3 py-2 text-xs leading-relaxed text-[var(--ink)] backdrop-blur-sm">
-              Yahan magic shuru. Yeh ek diary hai — hash map. Value ke saath index yaad rakho.
-            </p>
-          </div>
+          <HeroWalk />
         </div>
       </section>
 
-      <DailyPath />
+      <DailyPath meta={meta} />
 
       <section className="border-t border-[var(--line)] bg-[var(--bg)] px-5 py-16 lg:px-8">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="font-display text-3xl text-[var(--ink)] md:text-4xl">Pick a door</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">One destination. Open it and start.</p>
-          <ul className="mt-10">
-            {paths.map((p) => (
-              <li key={p.href} className="border-t border-[var(--line)] first:border-t-0">
-                <Link
-                  href={p.href}
-                  className="group flex flex-col gap-0.5 py-4 transition sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
+        <div className="mx-auto max-w-6xl">
+          <p className="eyebrow">Explore</p>
+          <h2 className="mt-2 font-display text-3xl md:text-4xl">Pick a door.</h2>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {doors.map((d) => (
+              <Link
+                key={d.href}
+                href={d.href}
+                className={`card card-hover group relative flex flex-col justify-between gap-8 overflow-hidden p-5 ${
+                  d.wide ? "sm:col-span-2" : ""
+                }`}
+              >
+                {d.wide && (
+                  <span
+                    className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full"
+                    style={{ background: "radial-gradient(circle, rgba(200,246,93,0.14), transparent 65%)" }}
+                  />
+                )}
+                <span
+                  className={`relative grid h-10 w-10 place-items-center rounded-xl ${
+                    d.wide ? "bg-[var(--accent)] text-[var(--accent-ink)]" : "bg-[var(--panel-2)] text-[var(--accent)]"
+                  }`}
                 >
-                  <span className="text-base font-medium text-[var(--ink)] group-hover:text-[var(--accent)]">
-                    {p.label}
+                  <Icon name={d.icon} size={18} />
+                </span>
+                <span className="relative">
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-display text-lg text-[var(--ink)]">{d.label}</span>
+                    <Icon
+                      name="arrowUpRight"
+                      size={16}
+                      className="shrink-0 text-[var(--faint)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]"
+                    />
                   </span>
-                  <span className="text-sm text-[var(--muted)] sm:text-right">{p.hint}</span>
-                </Link>
-              </li>
+                  <span className="mt-1 block max-w-md text-sm leading-relaxed text-[var(--muted)]">{d.hint}</span>
+                </span>
+              </Link>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
+
+      <footer className="border-t border-[var(--line)] px-5 py-8 text-center text-xs text-[var(--faint)]">
+        CodeMentor · built to make you <span className="font-serif-accent text-sm text-[var(--muted)]">get it</span>, not
+        just pass it.
+      </footer>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KaraokeLine, TeacherPresence } from "@/components/course/TeacherPresence";
+import { Icon } from "@/components/ui/icons";
 import type { TeacherShowScript } from "@/lib/teacher-shows";
 import { estimateSecs, fetchSpeechCached, prefetchSpeech, type VoiceLang } from "@/lib/speech-cache";
 
@@ -62,6 +63,7 @@ export function TeacherShow({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const stepStartedAt = useRef(0);
+  const chipsRef = useRef<HTMLDivElement | null>(null);
 
   speedRef.current = speed;
   langRef.current = lang;
@@ -111,6 +113,15 @@ export function TeacherShow({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep the active chapter chip in view as the lesson advances.
+  useEffect(() => {
+    const box = chipsRef.current;
+    const chip = box?.children[i] as HTMLElement | undefined;
+    if (!box || !chip) return;
+    const target = chip.offsetLeft - box.clientWidth / 2 + chip.clientWidth / 2;
+    box.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  }, [i]);
 
   useEffect(() => {
     if (!playing) return;
@@ -322,7 +333,8 @@ export function TeacherShow({
     }
   }
 
-  const showChrome = hover || !playing || fullscreen;
+  // Controls sit under the stage (never covering captions); only full screen overlays them.
+  const showChrome = !fullscreen || hover || !playing;
   const needValue = step?.stats && "need" in step.stats ? String(step.stats.need) : null;
   const stepProgress = Math.min(1, Math.max(0, tick / Math.max(0.4, stepDurations[i] || 3)));
   const chapter = step?.chapter || `Beat ${i + 1}`;
@@ -333,8 +345,8 @@ export function TeacherShow({
   return (
     <section
       ref={rootRef}
-      className={`overflow-hidden bg-black shadow-[0_8px_30px_rgba(0,0,0,0.45)] ${
-        fullscreen ? "rounded-none" : "rounded-xl"
+      className={`overflow-hidden bg-[#07090d] ${
+        fullscreen ? "rounded-none" : "rounded-xl border border-white/[0.07]"
       } ${compact ? "text-[13px]" : ""}`}
     >
       <div
@@ -346,11 +358,11 @@ export function TeacherShow({
           type="button"
           onClick={toggle}
           className={`relative block w-full overflow-hidden text-left ${
-            fullscreen ? "h-screen" : "aspect-video"
+            fullscreen ? "h-screen" : compact ? "aspect-[16/10]" : "aspect-video"
           }`}
           style={{
             background:
-              "radial-gradient(ellipse at 20% 10%, #2a2418 0%, transparent 45%), radial-gradient(ellipse at 80% 0%, #1a2838 0%, transparent 40%), linear-gradient(165deg, #12161c 0%, #07090c 100%)",
+              "radial-gradient(ellipse at 16% 0%, rgba(200,246,93,0.09) 0%, transparent 46%), radial-gradient(ellipse at 88% 4%, rgba(124,196,255,0.10) 0%, transparent 42%), linear-gradient(165deg, #0e131a 0%, #07090d 100%)",
           }}
         >
           <div
@@ -369,33 +381,41 @@ export function TeacherShow({
               </p>
               <h2 className="mt-0.5 text-sm font-semibold text-white sm:text-base">{script.title}</h2>
             </div>
-            <span className="rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-white/80 backdrop-blur">
+            <span className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[11px] tabular-nums text-white/80">
               {i + 1}/{script.steps.length}
             </span>
           </div>
 
-          <div className="absolute inset-0 grid grid-cols-[72px_1fr] gap-2 px-3 pb-28 pt-14 sm:grid-cols-[110px_1fr] sm:gap-4 sm:px-5 sm:pb-32 sm:pt-16">
+          <div
+            className={`absolute inset-0 grid grid-cols-[72px_1fr] gap-2 px-3 pt-14 sm:grid-cols-[110px_1fr] sm:gap-4 sm:px-5 sm:pt-16 ${
+              fullscreen ? "pb-28 sm:pb-32" : "pb-3 sm:pb-4"
+            }`}
+          >
             <div className="flex items-end justify-center pb-2 sm:items-center sm:pb-0">
               <TeacherPresence speaking={playing && voiceOn && !loadingVoice} gesture={gesture} compact={!fullscreen && compact} />
             </div>
 
             <div key={i} className="cm-chalk relative flex min-h-0 flex-col items-center justify-center">
-              <div className="mb-3 w-full max-w-3xl rounded-lg border border-white/10 bg-[#0e141c]/85 px-3 py-2 shadow-inner backdrop-blur-sm sm:px-4 sm:py-3">
-                <p className="mb-1 text-[10px] uppercase tracking-[0.14em] text-white/40">Chalkboard</p>
+              <div
+                className={`w-full max-w-3xl rounded-lg border border-white/10 bg-[#0c1219]/90 px-3 shadow-inner sm:px-4 ${
+                  compact ? "mb-2 py-1.5" : "mb-3 py-2 sm:py-3"
+                }`}
+              >
+                <p className="mb-0.5 text-[10px] uppercase tracking-[0.14em] text-white/40">Chalkboard</p>
                 <p className="font-display text-base text-[var(--accent)] sm:text-lg">{boardTitle}</p>
               </div>
 
               {needValue && (
-                <div className="cm-pulse mb-3 rounded-full border border-[#ffa116]/50 bg-[#ffa116]/15 px-3 py-1 text-xs font-semibold text-[#ffd28a]">
+                <div className="cm-pulse mb-3 rounded-full border border-[#ffd166]/50 bg-[#ffd166]/15 px-3 py-1 text-xs font-semibold text-[#ffe3a3]">
                   Looking for {needValue}
                 </div>
               )}
 
               {cells.length > 0 && (
-                <div className="relative mb-4 w-full max-w-3xl">
+                <div className={`relative w-full max-w-3xl ${compact ? "mb-2" : "mb-4"}`}>
                   {step.window && (
                     <svg
-                      className="pointer-events-none absolute inset-x-0 -top-3 h-6 w-full text-[#3ea6ff]/80"
+                      className="pointer-events-none absolute inset-x-0 -top-3 h-6 w-full text-[#7cc4ff]/80"
                       viewBox="0 0 100 12"
                       preserveAspectRatio="none"
                       aria-hidden
@@ -413,7 +433,7 @@ export function TeacherShow({
                         x={8 + ((step.window[0] + step.window[1]) / 2 / Math.max(1, cells.length - 1)) * 84}
                         y="11"
                         textAnchor="middle"
-                        className="fill-[#3ea6ff]"
+                        className="fill-[#7cc4ff]"
                         style={{ fontSize: 3.5 }}
                       >
                         window
@@ -444,18 +464,20 @@ export function TeacherShow({
                           {pointerLabels.map((p) => (
                             <span
                               key={p}
-                              className="cm-drop rounded bg-[#ff0033] px-1.5 text-[10px] font-bold text-white shadow"
+                              className="cm-drop rounded bg-[#ff7a45] px-1.5 text-[10px] font-bold text-black shadow"
                             >
                               {p}
                             </span>
                           ))}
                         </div>
                         <div
-                          className={`relative flex h-12 w-12 items-center justify-center border-2 font-mono text-base transition-all duration-500 ease-out sm:h-14 sm:w-14 sm:text-lg ${
+                          className={`relative flex items-center justify-center border-2 font-mono text-base transition-all duration-500 ease-out ${
+                            compact ? "h-11 w-11" : "h-12 w-12 sm:h-14 sm:w-14 sm:text-lg"
+                          } ${
                             on
-                              ? "border-[var(--accent)] bg-[var(--accent)] text-black shadow-[0_0_28px_rgba(255,161,22,0.45)]"
+                              ? "border-[var(--accent)] bg-[var(--accent)] text-black shadow-[0_0_28px_rgba(200,246,93,0.45)]"
                               : inWin
-                                ? "border-[#3ea6ff] bg-[#12304f] text-white"
+                                ? "border-[#7cc4ff] bg-[#12283f] text-white"
                                 : "border-white/15 bg-white/[0.06] text-white/65"
                           }`}
                           style={{ borderRadius: 12 }}
@@ -476,7 +498,7 @@ export function TeacherShow({
               {(step.map || step.stats) && (
                 <div className="mb-2 grid w-full max-w-3xl gap-2 sm:grid-cols-2">
                   {step.map && (
-                    <div className="rounded-xl border border-white/10 bg-black/45 p-3 backdrop-blur">
+                    <div className="rounded-xl border border-white/10 bg-black/50 p-3">
                       <p className="mb-2 text-[10px] uppercase tracking-wide text-white/45">Memory diary</p>
                       <div className="flex min-h-8 flex-wrap gap-1.5">
                         {Object.keys(step.map).length === 0 ? (
@@ -495,7 +517,7 @@ export function TeacherShow({
                     </div>
                   )}
                   {step.stats && (
-                    <div className="rounded-xl border border-white/10 bg-black/45 p-3 backdrop-blur">
+                    <div className="rounded-xl border border-white/10 bg-black/50 p-3">
                       <p className="mb-2 text-[10px] uppercase tracking-wide text-white/45">On the board</p>
                       <ul className="space-y-1 font-mono text-xs text-white/90">
                         {Object.entries(step.stats).map(([k, v]) => (
@@ -511,23 +533,40 @@ export function TeacherShow({
               )}
 
               {step.codeLine && (
-                <pre className="cm-fade mb-1 max-w-3xl overflow-x-auto rounded-xl border border-emerald-400/25 bg-emerald-950/50 px-3 py-2 font-mono text-[12px] text-[#d7ffe4]">
+                <pre className="cm-fade mb-1 max-w-3xl overflow-x-auto rounded-xl border border-[#c8f65d]/25 bg-[#c8f65d]/[0.07] px-3 py-2 font-mono text-[12px] text-[#e8ffb0]">
                   {step.codeLine}
                 </pre>
               )}
             </div>
           </div>
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent px-4 pb-16 pt-16">
-            <KaraokeLine text={spoken} progress={playing ? stepProgress : 1} className="text-[15px] font-medium sm:text-base" />
-            {caption && <p className="mt-1.5 text-xs leading-relaxed text-white/50">{caption}</p>}
-          </div>
-
-          {!playing && (
-            <span className="absolute left-1/2 top-1/2 z-20 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#ff0033] text-2xl text-white shadow-lg transition group-hover:scale-105">
-              {atEnd ? "↻" : "▶"}
-            </span>
+          {fullscreen && (
+            <div
+              className={`pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#07090d] via-[#07090d]/85 to-transparent px-6 pt-14 ${
+                showChrome ? "pb-32" : "pb-8"
+              }`}
+            >
+              <KaraokeLine text={spoken} progress={playing ? stepProgress : 1} className="text-lg font-medium" />
+              {caption && <p className="mt-1.5 text-sm leading-relaxed text-white/55">{caption}</p>}
+            </div>
           )}
+
+          {!playing &&
+            (i === 0 || atEnd ? (
+              <span className="absolute left-1/2 top-1/2 z-20 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] shadow-[0_0_0_8px_rgba(200,246,93,0.14),0_12px_32px_rgba(0,0,0,0.55)] transition-transform group-hover:scale-105">
+                {atEnd ? (
+                  <Icon name="reset" size={24} strokeWidth={2.2} />
+                ) : (
+                  <Icon name="play" size={24} fill="currentColor" strokeWidth={1.2} className="translate-x-px" />
+                )}
+              </span>
+            ) : (
+              // Mid-lesson pause: a small pill so the board stays readable.
+              <span className="absolute bottom-3 right-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/70 px-2.5 py-1 text-[11px] text-white/80">
+                <Icon name="pause" size={11} fill="currentColor" strokeWidth={1.2} />
+                Paused · click to resume
+              </span>
+            ))}
           {loadingVoice && playing && (
             <span className="absolute right-3 top-14 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white/70">
               Loading voice…
@@ -535,12 +574,24 @@ export function TeacherShow({
           )}
         </button>
 
+        {!fullscreen && (
+          // Captions live under the stage so they never cover the board.
+          <div className="min-h-[6rem] border-t border-white/[0.07] bg-[#090c11] px-4 pb-1 pt-3">
+            <KaraokeLine text={spoken} progress={playing ? stepProgress : 1} className="text-[15px] font-medium sm:text-base" />
+            {caption && <p className="mt-1.5 text-xs leading-relaxed text-white/50">{caption}</p>}
+          </div>
+        )}
+
         <div
-          className={`absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black to-transparent px-2 pb-2 pt-10 transition-opacity ${
-            showChrome ? "opacity-100" : "opacity-0"
-          }`}
+          className={
+            fullscreen
+              ? `absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black to-transparent px-3 pb-3 pt-10 transition-opacity ${
+                  showChrome ? "opacity-100" : "opacity-0"
+                }`
+              : "relative z-30 bg-[#090c11] px-3 pb-2.5 pt-1"
+          }
         >
-          <div className="mx-1 mb-2 flex gap-1 overflow-x-auto pb-1">
+          <div ref={chipsRef} className="no-scrollbar relative mb-2 flex gap-1 overflow-x-auto">
             {script.steps.map((s, idx) => {
               const label = s.chapter || `Beat ${idx + 1}`;
               const on = idx === i;
@@ -549,12 +600,17 @@ export function TeacherShow({
                   key={idx}
                   type="button"
                   title={s.board || label}
+                  aria-current={on ? "step" : undefined}
                   onClick={(e) => {
                     e.stopPropagation();
                     jump(idx);
                   }}
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
-                    on ? "bg-[var(--accent)] text-black" : "bg-white/10 text-white/70 hover:bg-white/20"
+                  className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    on
+                      ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)]"
+                      : idx < i
+                        ? "border-white/10 bg-white/[0.06] text-white/70 hover:border-white/25 hover:text-white"
+                        : "border-white/[0.07] bg-transparent text-white/45 hover:border-white/25 hover:text-white"
                   }`}
                 >
                   {label}
@@ -565,20 +621,22 @@ export function TeacherShow({
           <button
             type="button"
             aria-label="Seek lesson"
-            className="relative mx-1 mb-2 block h-1.5 w-[calc(100%-0.5rem)] overflow-hidden rounded-full bg-white/25"
+            className="group/seek relative mb-1.5 flex h-4 w-full items-center"
             onClick={(e) => {
               e.stopPropagation();
               const rect = e.currentTarget.getBoundingClientRect();
               seekByTime(Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)));
             }}
           >
-            <span
-              className="absolute inset-y-0 left-0 rounded-full bg-[#ff0033]"
-              style={{ width: `${Math.min(100, progress)}%` }}
-            />
+            <span className="relative block h-1.5 w-full overflow-hidden rounded-full bg-white/15 transition-[height] group-hover/seek:h-2">
+              <span
+                className="absolute inset-y-0 left-0 rounded-full bg-[var(--accent)]"
+                style={{ width: `${Math.min(100, progress)}%` }}
+              />
+            </span>
           </button>
 
-          <div className="flex flex-wrap items-center gap-1 px-1">
+          <div className="flex flex-wrap items-center gap-1">
             <button
               type="button"
               onClick={(e) => {
@@ -586,55 +644,62 @@ export function TeacherShow({
                 toggle();
               }}
               aria-label={playing ? "Pause" : "Play"}
-              className="grid h-9 w-9 place-items-center rounded-full text-white hover:bg-white/10"
+              className="mr-1 grid h-9 w-9 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] transition-transform hover:scale-105 active:scale-95"
             >
-              {playing ? "❚❚" : "▶"}
-            </button>
-            <button
-              type="button"
-              aria-label="Replay this beat"
-              title="Replay this beat"
-              className="rounded px-2 py-1 text-[11px] text-white/80 hover:bg-white/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                jump(i);
-              }}
-            >
-              Replay
+              {playing ? (
+                <Icon name="pause" size={15} fill="currentColor" strokeWidth={1.2} />
+              ) : (
+                <Icon name="play" size={15} fill="currentColor" strokeWidth={1.2} className="translate-x-px" />
+              )}
             </button>
             <button
               type="button"
               aria-label="Previous step"
-              className="grid h-8 w-8 place-items-center rounded-full text-white/80 hover:bg-white/10"
+              title="Previous step"
+              className="grid h-8 w-8 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               onClick={(e) => {
                 e.stopPropagation();
                 jump(i - 1);
               }}
             >
-              ⏮
+              <Icon name="skipBack" size={15} fill="currentColor" strokeWidth={1.4} />
             </button>
             <button
               type="button"
               aria-label="Next step"
-              className="grid h-8 w-8 place-items-center rounded-full text-white/80 hover:bg-white/10"
+              title="Next step"
+              className="grid h-8 w-8 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               onClick={(e) => {
                 e.stopPropagation();
                 jump(i + 1);
               }}
             >
-              ⏭
+              <Icon name="skipForward" size={15} fill="currentColor" strokeWidth={1.4} />
+            </button>
+            <button
+              type="button"
+              aria-label="Replay this beat"
+              title="Replay this beat"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                jump(i);
+              }}
+            >
+              <Icon name="reset" size={13} />
+              Replay
             </button>
 
-            <span className="ml-1 text-[11px] tabular-nums text-white/80">
+            <span className="ml-1 font-mono text-[11px] tabular-nums text-white/55">
               {fmt(nowSecs)} / {fmt(totalSecs)}
             </span>
 
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
-              <label className="flex items-center gap-1 text-[11px] text-white/70">
-                Speed
+              <label className="flex items-center gap-1 text-[11px] text-white/50">
+                <span className="hidden sm:inline">Speed</span>
                 <select
                   aria-label="Speed"
-                  className="rounded bg-white/10 px-1.5 py-1 text-[11px] text-white outline-none"
+                  className="rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-1 text-[11px] text-white/90 outline-none transition-colors hover:border-white/25 focus-visible:border-[var(--accent-line)]"
                   value={speed}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => {
@@ -653,7 +718,7 @@ export function TeacherShow({
               </label>
               <select
                 aria-label="Voice"
-                className="rounded bg-white/10 px-1.5 py-1 text-[11px] text-white outline-none"
+                className="rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-1 text-[11px] text-white/90 outline-none transition-colors hover:border-white/25 focus-visible:border-[var(--accent-line)]"
                 value={lang}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => {
@@ -680,20 +745,26 @@ export function TeacherShow({
                     hardStop();
                   }
                 }}
-                className="rounded px-1.5 py-1 text-[11px] text-white/85 hover:bg-white/10"
+                aria-label={voiceOn ? "Mute voice" : "Unmute voice"}
+                aria-pressed={!voiceOn}
+                title={voiceOn ? "Mute voice" : "Unmute voice"}
+                className={`grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/10 ${
+                  voiceOn ? "text-white/70 hover:text-white" : "text-[var(--ember)]"
+                }`}
               >
-                {voiceOn ? "🔊" : "🔇"}
+                <Icon name={voiceOn ? "volume" : "volumeOff"} size={16} />
               </button>
               <button
                 type="button"
                 aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+                title={fullscreen ? "Exit full screen" : "Full screen"}
                 onClick={(e) => {
                   e.stopPropagation();
                   void toggleFullscreen();
                 }}
-                className="rounded px-2 py-1 text-[11px] text-white/85 hover:bg-white/10"
+                className="grid h-8 w-8 place-items-center rounded-md text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               >
-                {fullscreen ? "⛶ Exit" : "⛶ Full"}
+                <Icon name={fullscreen ? "minimize" : "maximize"} size={16} />
               </button>
             </div>
           </div>
@@ -701,9 +772,9 @@ export function TeacherShow({
       </div>
 
       {!hidePractice && script.practiceIds.length > 0 && !fullscreen && (
-        <div className="flex flex-wrap gap-2 border-t border-white/10 bg-[#0f0f0f] px-3 py-2">
+        <div className="flex flex-wrap gap-2 border-t border-white/[0.07] bg-[#090c11] px-3 py-2">
           {script.practiceIds.map((pid) => (
-            <Link key={pid} href={`/practice/${pid}`} className="text-sm text-[#3ea6ff] hover:underline">
+            <Link key={pid} href={`/practice/${pid}`} className="text-sm text-[var(--accent-2)] hover:underline">
               Practice {pid}
             </Link>
           ))}

@@ -844,7 +844,9 @@ export function getTeacherShow(id: string) {
 }
 
 export function allTeacherShows() {
-  return [...Object.values(teacherShows), ...Object.values(EXTRA_SHOWS)];
+  // EXTRA_SHOWS is merged into `teacherShows` below, so spreading both lists used to repeat every extra show.
+  // Merge by id instead: base shows first, no duplicates.
+  return Object.values({ ...teacherShows, ...EXTRA_SHOWS });
 }
 
 /** Map problem id → default show */

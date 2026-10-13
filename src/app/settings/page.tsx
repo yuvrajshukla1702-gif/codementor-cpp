@@ -1,6 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/ui/icons";
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium text-[var(--ink)]">
+        {label}
+        {hint && <span className="ml-2 text-xs font-normal text-[var(--muted)]">{hint}</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
 
 export default function SettingsPage() {
   const [leetcodeUsername, setUser] = useState("sM1BAu3vUo");
@@ -54,98 +67,98 @@ export default function SettingsPage() {
     } else setStatus("Save failed.");
   }
 
+  const tutorLabel =
+    meta.tutorMode === "ollama"
+      ? `Local Ollama (${meta.ollamaModel || "qwen2.5:7b"})`
+      : meta.tutorMode === "cursor"
+        ? "Cursor"
+        : meta.tutorMode === "gemini"
+          ? "Gemini"
+          : "Built-in";
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 px-1 py-6 sm:px-3 sm:py-8">
       <header>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl">Settings</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Rich tutor is wired automatically: <strong className="text-[var(--ink)]">local Ollama</strong> (already on
-          this PC) → optional Gemini / Cursor keys if you add them later. No paid subscription required.
+        <p className="eyebrow">Settings</p>
+        <h1 className="mt-1 font-display text-4xl tracking-[-0.04em]">Make it yours</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Rich tutor is wired automatically: <strong className="text-[var(--ink)]">local Ollama</strong> (already on this
+          PC) → optional Gemini / Cursor keys if you add them later. No paid subscription required.
         </p>
-        <p className="mt-2 text-sm text-[var(--accent-2)]">
-          Active tutor:{" "}
-          {meta.tutorMode === "ollama"
-            ? `Local Ollama (${meta.ollamaModel || "qwen2.5:7b"})`
-            : meta.tutorMode === "cursor"
-              ? "Cursor"
-              : meta.tutorMode === "gemini"
-                ? "Gemini"
-                : "Built-in"}
+        <p className="chip chip-brand mt-3 !h-7">
+          <Icon name="sparkles" size={12} /> Active tutor: {tutorLabel}
         </p>
       </header>
 
-      <label className="block space-y-1 text-sm">
-        <span>LeetCode username</span>
-        <input
-          className="w-full rounded-md border border-[var(--line)] bg-[#0f1419] px-3 py-2"
-          value={leetcodeUsername}
-          onChange={(e) => setUser(e.target.value)}
-        />
-      </label>
+      <div className="card space-y-5 p-5 sm:p-6">
+        <Field label="LeetCode username">
+          <input className="input" value={leetcodeUsername} onChange={(e) => setUser(e.target.value)} />
+        </Field>
 
-      <label className="block space-y-1 text-sm">
-        <span>HackerRank username</span>
-        <input
-          className="w-full rounded-md border border-[var(--line)] bg-[#0f1419] px-3 py-2"
-          value={hackerrankUsername}
-          onChange={(e) => setHrUser(e.target.value)}
-        />
-      </label>
+        <Field label="HackerRank username">
+          <input className="input" value={hackerrankUsername} onChange={(e) => setHrUser(e.target.value)} />
+        </Field>
 
-      <label className="block space-y-1 text-sm">
-        <span>
-          Cursor API key {meta.hasCursorKey ? "(saved / env)" : "(optional — Dashboard → API keys)"}
-        </span>
-        <input
-          type="password"
-          className="w-full rounded-md border border-[var(--line)] bg-[#0f1419] px-3 py-2"
-          value={cursorApiKey}
-          onChange={(e) => setCursorKey(e.target.value)}
-          placeholder="Paste CURSOR_API_KEY to update"
-        />
-      </label>
-
-      <label className="block space-y-1 text-sm">
-        <span>
-          Gemini API key {meta.hasGeminiKey ? "(saved)" : "(optional — free AI Studio key is enough)"}
-        </span>
-        <input
-          type="password"
-          className="w-full rounded-md border border-[var(--line)] bg-[#0f1419] px-3 py-2"
-          value={geminiApiKey}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="Paste to update"
-        />
-      </label>
-
-      <label className="block space-y-1 text-sm">
-        <span>
-          LEETCODE_SESSION cookie {meta.hasLcSession ? "(saved)" : "(optional — for Submit to LeetCode)"}
-        </span>
-        <textarea
-          className="min-h-24 w-full rounded-md border border-[var(--line)] bg-[#0f1419] px-3 py-2 font-mono text-xs"
-          value={leetcodeSession}
-          onChange={(e) => setSession(e.target.value)}
-          placeholder="Browser DevTools → Application → Cookies → LEETCODE_SESSION"
-        />
-      </label>
-
-      <label className="block space-y-1 text-sm">
-        <span>Tutor tone</span>
-        <select
-          className="w-full rounded-md border border-[var(--line)] bg-[#0f1419] px-3 py-2"
-          value={tutorTone}
-          onChange={(e) => setTone(e.target.value)}
+        <Field
+          label="Cursor API key"
+          hint={meta.hasCursorKey ? "saved / env" : "optional — Dashboard → API keys"}
         >
-          <option value="hinglish">Hinglish (YouTube teacher)</option>
-          <option value="english">English</option>
-        </select>
-      </label>
+          <input
+            type="password"
+            className="input"
+            value={cursorApiKey}
+            onChange={(e) => setCursorKey(e.target.value)}
+            placeholder="Paste CURSOR_API_KEY to update"
+          />
+        </Field>
 
-      <button onClick={save} className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[#1a1208]">
-        Save settings
-      </button>
-      {status && <p className="text-sm text-[var(--accent-2)]">{status}</p>}
+        <Field
+          label="Gemini API key"
+          hint={meta.hasGeminiKey ? "saved" : "optional — free AI Studio key is enough"}
+        >
+          <input
+            type="password"
+            className="input"
+            value={geminiApiKey}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder="Paste to update"
+          />
+        </Field>
+
+        <Field
+          label="LEETCODE_SESSION cookie"
+          hint={meta.hasLcSession ? "saved" : "optional — for Submit to LeetCode"}
+        >
+          <textarea
+            className="input min-h-24 font-mono text-xs"
+            value={leetcodeSession}
+            onChange={(e) => setSession(e.target.value)}
+            placeholder="Browser DevTools → Application → Cookies → LEETCODE_SESSION"
+          />
+        </Field>
+
+        <Field label="Tutor tone">
+          <select className="input" value={tutorTone} onChange={(e) => setTone(e.target.value)}>
+            <option value="hinglish">Hinglish (YouTube teacher)</option>
+            <option value="english">English</option>
+          </select>
+        </Field>
+
+        <div className="flex items-center gap-3 pt-1">
+          <button onClick={save} className="btn btn-primary">
+            Save settings
+          </button>
+          {status && (
+            <p
+              className={`cm-fade inline-flex items-center gap-1.5 text-sm ${
+                status === "Saved." ? "text-[var(--accent)]" : "text-[var(--bad)]"
+              }`}
+            >
+              <Icon name={status === "Saved." ? "check" : "x"} size={14} strokeWidth={2.6} /> {status}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

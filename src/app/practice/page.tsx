@@ -1,11 +1,8 @@
-import Link from "next/link";
-import { curriculum, getTopic } from "@/lib/curriculum";
+import type { Metadata } from "next";
+import { ProblemBrowser, type BrowserRow, type BrowserTopic } from "@/components/ProblemBrowser";
+import { curriculum } from "@/lib/curriculum";
 
-function diffClass(d: string) {
-  if (d === "Easy") return "diff-easy";
-  if (d === "Medium") return "diff-medium";
-  return "diff-hard";
-}
+export const metadata: Metadata = { title: "Problems" };
 
 export default async function PracticeIndex({
   searchParams,
@@ -13,64 +10,19 @@ export default async function PracticeIndex({
   searchParams: Promise<{ topic?: string }>;
 }) {
   const sp = await searchParams;
-  const topic = sp.topic ? getTopic(sp.topic) : null;
-  const problems = topic
-    ? topic.problemIds.map((id) => curriculum.problems[id]).filter(Boolean)
-    : Object.values(curriculum.problems);
+  const topicTitle = new Map(curriculum.topics.map((t) => [t.id, t.title]));
 
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl">Problems</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {problems.length} problems{topic ? ` · ${topic.title}` : ""}
-          </p>
-        </div>
-      </div>
-      <div className="mb-4 flex flex-wrap gap-1.5">
-        <Link
-          href="/practice"
-          className={`shrink-0 rounded-full px-3 py-1 text-xs ${!topic ? "bg-[var(--chip)] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
-        >
-          All
-        </Link>
-        {curriculum.topics.map((t) => (
-          <Link
-            key={t.id}
-            href={`/practice?topic=${t.id}`}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs ${
-              topic?.id === t.id ? "bg-[var(--chip)] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            {t.title}
-          </Link>
-        ))}
-      </div>
-      <div className="overflow-hidden rounded-lg border border-[var(--line)]">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[var(--panel)] text-xs text-[var(--muted)]">
-            <tr>
-              <th className="px-4 py-2 font-medium">Title</th>
-              <th className="px-4 py-2 font-medium">Topic</th>
-              <th className="px-4 py-2 font-medium">Difficulty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {problems.map((p, i) => (
-              <tr key={p.id} className={i % 2 ? "bg-[#222]" : "bg-[#1a1a1a]"}>
-                <td className="px-4 py-2.5">
-                  <Link href={`/practice/${p.id}`} className="hover:text-[var(--accent)]">
-                    {p.title}
-                  </Link>
-                </td>
-                <td className="px-4 py-2.5 text-[var(--muted)]">{p.topic}</td>
-                <td className={`px-4 py-2.5 ${diffClass(p.difficulty)}`}>{p.difficulty}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const rows: BrowserRow[] = Object.values(curriculum.problems).map((p) => ({
+    id: p.id,
+    title: p.title,
+    difficulty: p.difficulty,
+    topic: p.topic,
+    topicTitle: topicTitle.get(p.topic) ?? p.topic,
+  }));
+
+  const topics: BrowserTopic[] = [...curriculum.topics]
+    .sort((a, b) => a.order - b.order)
+    .map((t) => ({ id: t.id, title: t.title, blurb: t.blurb, problemIds: t.problemIds }));
+
+  return <ProblemBrowser rows={rows} topics={topics} initialTopic={sp.topic} />;
 }

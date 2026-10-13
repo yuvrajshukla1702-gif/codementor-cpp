@@ -35,44 +35,95 @@ export const LEARNING_SPINE: { id: string; title: string }[] = [
 const STORAGE_DONE = "cm-path-done";
 const STORAGE_STREAK = "cm-path-streak";
 const STORAGE_LAST = "cm-path-last-day";
+const STORAGE_BEST = "cm-path-best";
+
+/** Fired on window whenever progress changes so every subscriber can refresh. */
+export const STATE_EVENT = "cm:state";
+
+/** Local calendar day (not UTC) so a streak rolls over at the learner's midnight. */
+export function dayKey(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function yesterdayKey(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return dayKey(d);
+}
+
+function lsGet(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function lsSet(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    /* storage full or blocked */
+  }
+}
 
 export function loadDoneIds(): string[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_DONE) || "[]");
+    const parsed = JSON.parse(lsGet(STORAGE_DONE) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
   } catch {
     return [];
   }
 }
 
-export function markDone(id: string) {
-  if (typeof window === "undefined") return;
+export type MarkResult = { firstTime: boolean; streak: number; streakExtended: boolean };
+
+export function markDone(id: string): MarkResult {
+  if (typeof window === "undefined") return { firstTime: false, streak: 0, streakExtended: false };
   const done = new Set(loadDoneIds());
+  const firstTime = !done.has(id);
   done.add(id);
-  window.localStorage.setItem(STORAGE_DONE, JSON.stringify([...done]));
-  bumpStreak();
+  lsSet(STORAGE_DONE, JSON.stringify([...done]));
+  const bumped = bumpStreak();
+  window.dispatchEvent(new Event(STATE_EVENT));
+  return { firstTime, streak: bumped.streak, streakExtended: bumped.extended };
 }
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+function bumpStreak(): { streak: number; extended: boolean } {
+  const today = dayKey();
+  const last = lsGet(STORAGE_LAST) || "";
+  let streak = Number(lsGet(STORAGE_STREAK) || 0);
+  if (last === today) return { streak: Math.max(streak, 1), extended: false };
+  streak = last === yesterdayKey() ? streak + 1 : 1;
+  lsSet(STORAGE_STREAK, String(streak));
+  lsSet(STORAGE_LAST, today);
+  const best = Number(lsGet(STORAGE_BEST) || 0);
+  if (streak > best) lsSet(STORAGE_BEST, String(streak));
+  return { streak, extended: true };
 }
 
-function bumpStreak() {
-  const today = todayKey();
-  const last = window.localStorage.getItem(STORAGE_LAST) || "";
-  let streak = Number(window.localStorage.getItem(STORAGE_STREAK) || 0);
-  if (last === today) return;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yKey = yesterday.toISOString().slice(0, 10);
-  streak = last === yKey ? streak + 1 : 1;
-  window.localStorage.setItem(STORAGE_STREAK, String(streak));
-  window.localStorage.setItem(STORAGE_LAST, today);
-}
-
+/** Current streak. A streak with no activity today or yesterday is already broken. */
 export function loadStreak(): number {
   if (typeof window === "undefined") return 0;
-  return Number(window.localStorage.getItem(STORAGE_STREAK) || 0);
+  const last = lsGet(STORAGE_LAST) || "";
+  if (last !== dayKey() && last !== yesterdayKey()) return 0;
+  return Number(lsGet(STORAGE_STREAK) || 0);
+}
+
+export function loadBestStreak(): number {
+  if (typeof window === "undefined") return 0;
+  return Math.max(Number(lsGet(STORAGE_BEST) || 0), loadStreak());
+}
+
+/** True when today has no activity yet but yesterday's streak is still alive. */
+export function streakAtRisk(): boolean {
+  if (typeof window === "undefined") return false;
+  const last = lsGet(STORAGE_LAST) || "";
+  return last === yesterdayKey() && Number(lsGet(STORAGE_STREAK) || 0) > 0;
 }
 
 export function nextPathItems(doneIds: string[], limit = 3): PathItem[] {
