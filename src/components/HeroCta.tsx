@@ -19,8 +19,9 @@ export function HeroCta() {
         <span className="max-w-[16rem] truncate">{label}</span>
         <Icon name="arrowRight" size={16} />
       </Link>
-      <Link href="/practice" className="btn !h-12 !px-5 !text-[15px]">
-        Browse problems
+      <Link href="/ask" className="btn !h-12 !px-5 !text-[15px]">
+        <Icon name="sparkles" size={15} className="text-[var(--accent)]" />
+        Ask AI
       </Link>
       <button type="button" onClick={openCommandMenu} className="btn btn-quiet !h-12 hidden! !px-3 sm:inline-flex!">
         <Icon name="search" size={15} />

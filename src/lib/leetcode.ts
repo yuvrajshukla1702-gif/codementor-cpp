@@ -1,6 +1,6 @@
 const LC_GQL = "https://leetcode.com/graphql";
 
-async function lcFetch(query: string, variables: Record<string, unknown>, session?: string) {
+async function lcFetch(query: string, variables: Record<string, unknown>, session?: string, signal?: AbortSignal) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Referer: "https://leetcode.com/",
@@ -12,7 +12,7 @@ async function lcFetch(query: string, variables: Record<string, unknown>, sessio
     method: "POST",
     headers,
     body: JSON.stringify({ query, variables }),
-    signal: AbortSignal.timeout(12000),
+    signal: signal ? AbortSignal.any([AbortSignal.timeout(8000), signal]) : AbortSignal.timeout(8000),
   });
   if (!res.ok) throw new Error(`LeetCode HTTP ${res.status}`);
   return res.json();
@@ -26,7 +26,7 @@ export type LcProfile = {
   recent: Array<{ title: string; titleSlug: string; lang: string; timestamp: string }>;
 };
 
-export async function fetchLcProfile(username: string): Promise<LcProfile> {
+export async function fetchLcProfile(username: string, signal?: AbortSignal): Promise<LcProfile> {
   const query = `
   query($username: String!) {
     matchedUser(username: $username) {
@@ -43,7 +43,7 @@ export async function fetchLcProfile(username: string): Promise<LcProfile> {
       title titleSlug timestamp lang
     }
   }`;
-  const json = await lcFetch(query, { username });
+  const json = await lcFetch(query, { username }, undefined, signal);
   const u = json?.data?.matchedUser;
   if (!u) throw new Error("LeetCode user not found");
   const ac = u.submitStatsGlobal?.acSubmissionNum || [];

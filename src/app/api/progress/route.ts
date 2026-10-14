@@ -5,7 +5,7 @@ import { gradeWithTutor } from "@/lib/gemini";
 import { interviewBank } from "@/lib/interview-bank";
 
 export async function GET() {
-  const synced = await (await import("@/lib/platform-sync")).syncPlatforms();
+  const synced = await (await import("@/lib/platform-sync")).syncPlatforms({ wait: false });
   const profile = synced.leetcode;
   const hackerrank = synced.hackerrank;
   const localSolved = await prisma.problemProgress.count({

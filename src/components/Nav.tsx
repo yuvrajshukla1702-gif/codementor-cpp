@@ -6,7 +6,8 @@ import { openCommandMenu } from "./CommandMenu";
 import { Icon, Logo } from "./ui/icons";
 import { useGame } from "@/lib/gamify";
 
-const links: { href: string; label: string; match: (p: string) => boolean }[] = [
+const links: { href: string; label: string; match: (p: string) => boolean; spark?: boolean }[] = [
+  { href: "/ask", label: "Ask AI", match: (p) => p.startsWith("/ask"), spark: true },
   { href: "/practice", label: "Problems", match: (p) => p.startsWith("/practice") },
   {
     href: "/learn",
@@ -52,6 +53,7 @@ export function Nav() {
                     : "text-[var(--muted)] hover:bg-white/[.04] hover:text-[var(--ink)]"
                 }`}
               >
+                {l.spark && <Icon name="sparkles" size={13} className={`mr-1.5 ${active ? "text-[var(--accent)]" : "text-[var(--accent)]/80"}`} />}
                 {l.label}
               </Link>
             );

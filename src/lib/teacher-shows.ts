@@ -29,6 +29,17 @@ export type ShowStep = {
   board?: string;
   /** Course chapter label */
   chapter?: string;
+  /** 2-D table (dp grid, matrix) — used by the AI agent's dry runs */
+  grid?: Array<Array<string | number>>;
+  /** Highlighted [row, col] inside `grid` */
+  gridHi?: [number, number];
+  /** Named rows: stacks, queues, dp rows, result vectors */
+  lists?: Record<string, Array<string | number>>;
+  /** Indices to highlight inside each named list */
+  listHi?: Record<string, number[]>;
+  /** Heading for the map card; with mapPlain the entries read "key → value" */
+  mapTitle?: string;
+  mapPlain?: boolean;
 };
 
 export type TeacherShowScript = {

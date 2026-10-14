@@ -106,7 +106,7 @@ export default function ProgressPage() {
     setBusy(true);
     setMsg("");
     try {
-      const res = await fetch("/api/sync", { method: "POST" });
+      const res = await fetch("/api/sync?force=1", { method: "POST" });
       const j = await res.json();
       if (j.errors?.length) setMsg(j.errors.join(" · "));
       else

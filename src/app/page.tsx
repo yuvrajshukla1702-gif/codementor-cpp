@@ -21,16 +21,24 @@ export default function HomePage() {
 
   const doors: { href: string; icon: IconName; label: string; hint: string; wide?: boolean }[] = [
     {
+      href: "/ask",
+      icon: "sparkles",
+      label: "Ask AI anything",
+      hint: "Paste any problem, code or concept. Get a whiteboard video with a voice-over, a dry run, and C++ that was really compiled and tested.",
+      wide: true,
+    },
+    { href: "/practice", icon: "list", label: "All problems", hint: `${total} problems, searchable, with a local judge.` },
+    {
       href: "/practice/two-sum",
       icon: "play",
       label: "Start with Two Sum",
       hint: "The reference lesson: Easy, Medium and Best solutions, each with a voice-over code walk.",
       wide: true,
     },
-    { href: "/practice", icon: "list", label: "All problems", hint: `${total} problems, searchable, with a local judge.` },
     { href: "/learn", icon: "book", label: "Learn DSA", hint: "Topic lessons before the drill." },
     { href: "/learn/cpp", icon: "code", label: "C++ track", hint: "Syntax and STL before the hard ones." },
     { href: "/learn/dsa/hackerrank", icon: "target", label: "HackerRank", hint: "Warm-ups synced to your profile." },
+    { href: "/tcs", icon: "mic", label: "Interview prep", hint: "TCS NQT, core CS and HR answers." },
   ];
 
   return (

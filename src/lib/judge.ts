@@ -33,12 +33,20 @@ function whichGpp(): string {
   return process.platform === "win32" ? "g++" : "g++";
 }
 
+/** Thrown when the machine has no C++ compiler (e.g. a serverless host). */
+export class JudgeUnavailableError extends Error {
+  constructor(message = "No C++ compiler (g++) is available on this machine.") {
+    super(message);
+    this.name = "JudgeUnavailableError";
+  }
+}
+
 async function runCmd(
   cmd: string,
   args: string[],
   input: string,
   timeoutMs = 4000
-): Promise<{ code: number | null; stdout: string; stderr: string }> {
+): Promise<{ code: number | null; stdout: string; stderr: string; missing?: boolean }> {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, { windowsHide: true });
     let stdout = "";
@@ -47,6 +55,12 @@ async function runCmd(
       child.kill();
       resolve({ code: null, stdout, stderr: stderr + "\nTIMEOUT" });
     }, timeoutMs);
+    // A missing binary (ENOENT) emits "error" instead of "close"; without a listener it crashes the request.
+    child.on("error", (err: NodeJS.ErrnoException) => {
+      clearTimeout(timer);
+      resolve({ code: null, stdout, stderr: stderr + err.message, missing: err.code === "ENOENT" });
+    });
+    child.stdin.on("error", () => undefined);
     child.stdout.on("data", (d) => (stdout += d.toString()));
     child.stderr.on("data", (d) => (stderr += d.toString()));
     child.on("close", (code) => {
@@ -110,6 +124,10 @@ export async function judgeProblem(
     "",
     15000
   );
+  if (compile.missing) {
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
+    throw new JudgeUnavailableError();
+  }
   if (compile.code !== 0) {
     const raw = (compile.stderr || compile.stdout || "compile failed").slice(0, 4000);
     const diagnostics = parseCompilerDiagnostics(raw, problem.harness, studentCode);

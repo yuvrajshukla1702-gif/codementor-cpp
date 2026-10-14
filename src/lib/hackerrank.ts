@@ -20,19 +20,24 @@ const UA = {
   Accept: "application/json",
 };
 
-async function getJson(url: string) {
-  const res = await fetch(url, { headers: UA, cache: "no-store" });
+async function getJson(url: string, signal?: AbortSignal) {
+  const res = await fetch(url, {
+    headers: UA,
+    cache: "no-store",
+    signal: signal ?? AbortSignal.timeout(8000),
+  });
   if (!res.ok) throw new Error(`HackerRank HTTP ${res.status}`);
   return res.json();
 }
 
-export async function fetchHrProfile(username: string): Promise<HrProfile> {
+export async function fetchHrProfile(username: string, signal?: AbortSignal): Promise<HrProfile> {
   const user = username.trim() || "yuvrajshukla1702";
   const [profile, scores, recent] = await Promise.all([
-    getJson(`https://www.hackerrank.com/rest/contests/master/hackers/${encodeURIComponent(user)}/profile`),
-    getJson(`https://www.hackerrank.com/rest/hackers/${encodeURIComponent(user)}/scores_elo`),
+    getJson(`https://www.hackerrank.com/rest/contests/master/hackers/${encodeURIComponent(user)}/profile`, signal),
+    getJson(`https://www.hackerrank.com/rest/hackers/${encodeURIComponent(user)}/scores_elo`, signal),
     getJson(
       `https://www.hackerrank.com/rest/hackers/${encodeURIComponent(user)}/recent_challenges?offset=0&limit=100`,
+      signal,
     ),
   ]);
 

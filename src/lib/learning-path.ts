@@ -1,4 +1,4 @@
-﻿import type { Problem } from "./types";
+import type { Problem } from "./types";
 
 export type PathItem = {
   id: string;

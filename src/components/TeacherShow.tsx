@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { KaraokeLine, TeacherPresence } from "@/components/course/TeacherPresence";
 import { Icon } from "@/components/ui/icons";
 import type { TeacherShowScript } from "@/lib/teacher-shows";
@@ -33,10 +33,13 @@ export function TeacherShow({
   script,
   compact = false,
   hidePractice = false,
+  onLangChange,
 }: {
   script: TeacherShowScript;
   compact?: boolean;
   hidePractice?: boolean;
+  /** Fires with the saved voice language on mount and whenever the viewer changes it. */
+  onLangChange?: (lang: VoiceLang) => void;
 }) {
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -52,6 +55,9 @@ export function TeacherShow({
   );
 
   const rootRef = useRef<HTMLElement | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const [fit, setFit] = useState(1);
   const gen = useRef(0);
   const speakId = useRef(0);
   const iRef = useRef(0);
@@ -60,6 +66,7 @@ export function TeacherShow({
   const langRef = useRef(lang);
   const voiceRef = useRef(voiceOn);
   const scriptRef = useRef(script);
+  const onLangRef = useRef(onLangChange);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const stepStartedAt = useRef(0);
@@ -69,6 +76,7 @@ export function TeacherShow({
   langRef.current = lang;
   voiceRef.current = voiceOn;
   scriptRef.current = script;
+  onLangRef.current = onLangChange;
 
   const step = script.steps[i] ?? script.steps[0];
   const cells = step?.cells ?? [];
@@ -95,6 +103,7 @@ export function TeacherShow({
       setLang(saved);
       langRef.current = saved;
     }
+    onLangRef.current?.(langRef.current);
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.preload = "auto";
@@ -122,6 +131,25 @@ export function TeacherShow({
     const target = chip.offsetLeft - box.clientWidth / 2 + chip.clientWidth / 2;
     box.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
   }, [i]);
+
+  // A busy board (a row of cells plus a stack, a map and a note) shrinks to fit the stage instead of spilling out of it.
+  // Transform only, measured once per step, so it costs nothing while playing.
+  useLayoutEffect(() => {
+    const outer = boardRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const measure = () => {
+      const needW = Math.max(inner.scrollWidth, inner.offsetWidth);
+      const needH = Math.max(inner.scrollHeight, inner.offsetHeight);
+      const k = Math.min(1, outer.clientHeight / Math.max(1, needH), outer.clientWidth / Math.max(1, needW));
+      const next = Math.max(0.5, Math.round(k * 100) / 100);
+      setFit((p) => (p === next ? p : next));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(outer);
+    return () => ro.disconnect();
+  }, [i, fullscreen, script]);
 
   useEffect(() => {
     if (!playing) return;
@@ -387,7 +415,7 @@ export function TeacherShow({
           </div>
 
           <div
-            className={`absolute inset-0 grid grid-cols-[72px_1fr] gap-2 px-3 pt-14 sm:grid-cols-[110px_1fr] sm:gap-4 sm:px-5 sm:pt-16 ${
+            className={`absolute inset-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2 px-3 pt-14 sm:grid-cols-[110px_minmax(0,1fr)] sm:gap-4 sm:px-5 sm:pt-16 ${
               fullscreen ? "pb-28 sm:pb-32" : "pb-3 sm:pb-4"
             }`}
           >
@@ -395,7 +423,12 @@ export function TeacherShow({
               <TeacherPresence speaking={playing && voiceOn && !loadingVoice} gesture={gesture} compact={!fullscreen && compact} />
             </div>
 
-            <div key={i} className="cm-chalk relative flex min-h-0 flex-col items-center justify-center">
+            <div key={i} ref={boardRef} className="cm-chalk relative flex min-h-0 items-center justify-center">
+             <div
+              ref={innerRef}
+              className="flex w-full flex-col items-center"
+              style={fit < 1 ? { transform: `scale(${fit})` } : undefined}
+             >
               <div
                 className={`w-full max-w-3xl rounded-lg border border-white/10 bg-[#0c1219]/90 px-3 shadow-inner sm:px-4 ${
                   compact ? "mb-2 py-1.5" : "mb-3 py-2 sm:py-3"
@@ -440,7 +473,7 @@ export function TeacherShow({
                       </text>
                     </svg>
                   )}
-                  <div className="relative flex flex-wrap justify-center gap-2.5 sm:gap-3">
+                  <div className={`relative flex justify-center ${cells.length > 14 ? "flex-wrap" : "flex-nowrap"} ${cells.length > 11 ? "gap-1" : cells.length > 7 ? "gap-1.5" : "gap-2.5 sm:gap-3"}`}>
                   {focusIdx >= 0 && (
                     <div
                       className="cm-laser pointer-events-none absolute -left-8 top-1/2 hidden h-0.5 w-8 bg-gradient-to-r from-transparent to-[var(--accent)] sm:block"
@@ -472,7 +505,13 @@ export function TeacherShow({
                         </div>
                         <div
                           className={`relative flex items-center justify-center border-2 font-mono text-base transition-all duration-500 ease-out ${
-                            compact ? "h-11 w-11" : "h-12 w-12 sm:h-14 sm:w-14 sm:text-lg"
+                            compact
+                              ? "h-11 w-11"
+                              : cells.length > 11
+                                ? "h-8 w-8 text-xs"
+                                : cells.length > 7
+                                  ? "h-10 w-10 text-sm"
+                                  : "h-12 w-12 sm:h-14 sm:w-14 sm:text-lg"
                           } ${
                             on
                               ? "border-[var(--accent)] bg-[var(--accent)] text-black shadow-[0_0_28px_rgba(200,246,93,0.45)]"
@@ -495,11 +534,67 @@ export function TeacherShow({
                 </div>
               )}
 
-              {(step.map || step.stats) && (
+              {step.grid && step.grid.length > 0 && (
+                <div className={`mb-2 max-w-full overflow-x-auto rounded-xl border border-white/10 bg-black/40 p-2 ${compact ? "" : "sm:p-3"}`}>
+                  <table className="mx-auto border-separate border-spacing-1 font-mono text-[11px]">
+                    <tbody>
+                      {step.grid.map((row, r) => (
+                        <tr key={r}>
+                          <th className="pr-1 text-right text-[9px] font-normal text-white/35">{r}</th>
+                          {row.map((c, col) => {
+                            const on = step.gridHi?.[0] === r && step.gridHi?.[1] === col;
+                            return (
+                              <td
+                                key={col}
+                                className={`h-7 min-w-7 rounded-md px-1.5 text-center transition-colors duration-300 ${
+                                  on
+                                    ? "bg-[var(--accent)] font-bold text-black shadow-[0_0_18px_rgba(200,246,93,0.4)]"
+                                    : "bg-white/[0.07] text-white/75"
+                                }`}
+                              >
+                                {String(c)}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {(step.map || step.stats || step.lists) && (
                 <div className="mb-2 grid w-full max-w-3xl gap-2 sm:grid-cols-2">
+                  {step.lists && Object.keys(step.lists).length > 0 && (
+                    <div className="rounded-xl border border-white/10 bg-black/50 p-3">
+                      {Object.entries(step.lists).map(([name, items]) => (
+                        <div key={name} className="mb-2 last:mb-0">
+                          <p className="mb-1 font-mono text-[10px] uppercase tracking-wide text-white/45">{name}</p>
+                          <div className="flex min-h-7 flex-wrap items-center gap-1.5">
+                            {items.length === 0 ? (
+                              <span className="text-xs text-white/40">empty</span>
+                            ) : (
+                              items.map((v, idx) => (
+                                <span
+                                  key={`${idx}-${String(v)}-${i}`}
+                                  className={`cm-pop rounded-lg px-2.5 py-1 font-mono text-xs ${
+                                    step.listHi?.[name]?.includes(idx)
+                                      ? "bg-[var(--accent)] font-bold text-black"
+                                      : "bg-[#1b4a74] text-[#b7e0ff]"
+                                  }`}
+                                >
+                                  {String(v)}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {step.map && (
                     <div className="rounded-xl border border-white/10 bg-black/50 p-3">
-                      <p className="mb-2 text-[10px] uppercase tracking-wide text-white/45">Memory diary</p>
+                      <p className="mb-2 text-[10px] uppercase tracking-wide text-white/45">{step.mapTitle || "Memory diary"}</p>
                       <div className="flex min-h-8 flex-wrap gap-1.5">
                         {Object.keys(step.map).length === 0 ? (
                           <span className="text-xs text-white/40">still empty…</span>
@@ -509,7 +604,7 @@ export function TeacherShow({
                               key={`${k}-${v}-${i}`}
                               className="cm-pop rounded-lg bg-[#1b4a74] px-2.5 py-1 font-mono text-xs text-[#b7e0ff]"
                             >
-                              {k} → index {String(v)}
+                              {step.mapPlain ? `${k} → ${String(v)}` : `${k} → index ${String(v)}`}
                             </span>
                           ))
                         )}
@@ -537,6 +632,7 @@ export function TeacherShow({
                   {step.codeLine}
                 </pre>
               )}
+             </div>
             </div>
           </div>
 
@@ -726,6 +822,7 @@ export function TeacherShow({
                   setLang(next);
                   langRef.current = next;
                   window.localStorage.setItem("cm-voice-lang", next);
+                  onLangRef.current?.(next);
                   if (playRef.current) jump(iRef.current);
                 }}
               >

@@ -28,6 +28,7 @@ type Entry = {
 
 const PAGES: { href: string; title: string; sub: string; icon: IconName }[] = [
   { href: "/", title: "Home", sub: "Mission control", icon: "home" },
+  { href: "/ask", title: "Ask AI", sub: "Any question: video, dry run, tested code", icon: "sparkles" },
   { href: "/practice", title: "All problems", sub: "Browse & filter", icon: "list" },
   { href: "/learn", title: "Learn DSA", sub: "Topic by topic", icon: "book" },
   { href: "/learn/cpp", title: "C++ track", sub: "Language fundamentals", icon: "code" },
@@ -172,6 +173,17 @@ export function CommandMenu() {
     for (const { p } of problems) out.push(problemEntry(p, "Problems"));
     for (const { p } of pages) {
       out.push({ key: `g:${p.href}`, group: "Go to", title: p.title, sub: p.sub, icon: p.icon, run: go(p.href) });
+    }
+    const raw = query.trim();
+    if (raw.length >= 3) {
+      out.push({
+        key: "a:ask",
+        group: "Ask the AI",
+        title: raw.length > 52 ? `${raw.slice(0, 52)}…` : raw,
+        sub: "Video, dry run & tested code",
+        icon: "sparkles",
+        run: go(`/ask?q=${encodeURIComponent(raw.slice(0, 6000))}`),
+      });
     }
     return out;
   }, [query, rows, game.done, router]);
