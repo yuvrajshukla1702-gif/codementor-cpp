@@ -102,7 +102,7 @@ function sampleText(kind: Param["kind"], index: number) {
 function readStmt(param: Param, id: string) {
   if (param.kind === "vi" || param.kind === "vs") {
     const value = param.kind === "vi" ? "int" : "string";
-    return `string cm_line_${id};\n    getline(cin, cm_line_${id});\n    {\n        stringstream cm_ss_${id}(cm_line_${id});\n        ${value} cm_item_${id};\n        while (cm_ss_${id} >> cm_item_${id}) ${id}.push_back(cm_item_${id});\n    }`;
+    return `string cm_line_${id};\n    getline(cin, cm_line_${id});\n    for (char& cm_ch_${id} : cm_line_${id}) if (cm_ch_${id} == ',' || cm_ch_${id} == '[' || cm_ch_${id} == ']' || cm_ch_${id} == '{' || cm_ch_${id} == '}') cm_ch_${id} = ' ';\n    {\n        stringstream cm_ss_${id}(cm_line_${id});\n        ${value} cm_item_${id};\n        while (cm_ss_${id} >> cm_item_${id}) ${id}.push_back(cm_item_${id});\n    }`;
   }
   if (param.kind === "vvi") {
     return `int cm_rows_${id} = 0;\n    if (!(cin >> cm_rows_${id})) cm_rows_${id} = 0;\n    cin.ignore();\n    for (int cm_r_${id} = 0; cm_r_${id} < cm_rows_${id}; cm_r_${id}++) {\n        string cm_line_${id};\n        getline(cin, cm_line_${id});\n        stringstream cm_ss_${id}(cm_line_${id});\n        vector<int> cm_row_${id};\n        int cm_item_${id};\n        while (cm_ss_${id} >> cm_item_${id}) cm_row_${id}.push_back(cm_item_${id});\n        ${id}.push_back(cm_row_${id});\n    }`;
@@ -162,30 +162,39 @@ export function prepareCpp(code: string, stdin = ""): { source: string; wrapped:
   const typed = stdin.replace(/\r\n?/g, "\n").trim();
   const fromInput = typed.length > 0 && typed.replace(/\s+/g, " ") !== "4 5";
   const ids = method.params.map((param, index) => ({ param, id: `cm_arg_${index}` }));
-  const lines = ids.map(({ param, id }, index) => {
-    if (fromInput) return decl(param, id, true);
-    const type =
-      param.kind === "int"
-        ? "int"
-        : param.kind === "long"
-          ? "long long"
-          : param.kind === "double"
-            ? "double"
-            : param.kind === "bool"
-              ? "bool"
-              : param.kind === "string"
-                ? "string"
-                : param.kind === "vi"
-                  ? "vector<int>"
-                  : param.kind === "vs"
-                    ? "vector<string>"
-                    : "vector<vector<int>>";
-    return `${type} ${id} = ${sample(param.kind, index)};`;
-  });
+  const rotated = method.params.length === 2 && method.params[0].kind === "vi" && method.params[1].kind === "int";
+  const lines = rotated
+    ? [
+        fromInput
+          ? `auto cm_nums_of = [](string s) {\n        for (char& c : s) if (c == ',' || c == '[' || c == ']' || c == '{' || c == '}') c = ' ';\n        stringstream ss(s);\n        vector<int> v; int x;\n        while (ss >> x) v.push_back(x);\n        return v;\n    };\n    string cm_l1, cm_l2;\n    getline(cin, cm_l1);\n    if (!getline(cin, cm_l2)) cm_l2 = "";\n    vector<int> cm_arg_0;\n    int cm_arg_1 = 0;\n    auto cm_a = cm_nums_of(cm_l1);\n    auto cm_b = cm_nums_of(cm_l2);\n    if (cm_b.empty() && cm_a.size() >= 2) {\n        cm_arg_1 = cm_a.back();\n        cm_a.pop_back();\n        cm_arg_0 = cm_a;\n    } else {\n        cm_arg_0 = cm_a;\n        if (!cm_b.empty()) cm_arg_1 = cm_b[0];\n    }\n    if (cm_arg_0.empty()) {\n        cm_arg_0 = {4, 5, 6, 7, 0, 1, 2};\n        cm_arg_1 = 0;\n    }`
+          : `vector<int> cm_arg_0 = {4, 5, 6, 7, 0, 1, 2};\n    int cm_arg_1 = 0;`,
+      ]
+    : ids.map(({ param, id }, index) => {
+        if (fromInput) return decl(param, id, true);
+        const type =
+          param.kind === "int"
+            ? "int"
+            : param.kind === "long"
+              ? "long long"
+              : param.kind === "double"
+                ? "double"
+                : param.kind === "bool"
+                  ? "bool"
+                  : param.kind === "string"
+                    ? "string"
+                    : param.kind === "vi"
+                      ? "vector<int>"
+                      : param.kind === "vs"
+                        ? "vector<string>"
+                        : "vector<vector<int>>";
+        return `${type} ${id} = ${sample(param.kind, index)};`;
+      });
+  const shown = rotated
+    ? `${method.name}({4, 5, 6, 7, 0, 1, 2}, 0)`
+    : `${method.name}(${ids.map(({ param }, index) => sampleText(param.kind, index)).join(", ")})`;
   const args = ids.map(({ id }) => id).join(", ");
   const call = method.className ? `cm_sol.${method.name}(${args})` : `${method.name}(${args})`;
   const object = method.className ? `${method.className} cm_sol;\n    ` : "";
-  const shown = `${method.name}(${ids.map(({ param }, index) => sampleText(param.kind, index)).join(", ")})`;
   return {
     source: `${header}int main() {\n    ${object}${lines.join("\n    ")}\n    ${printResult(method.ret, call)}    return 0;\n}\n`,
     wrapped: true,
