@@ -59,9 +59,20 @@ export async function POST(req: Request) {
     return new Response(`${JSON.stringify(ev)}\n`, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
   }
 
-  if (!acquire(3)) {
-    return NextResponse.json({ error: "The agent is busy with other questions. Try again in a few seconds.", code: "busy" }, { status: 503 });
+  // The cap protects a public copy. On this computer a retry must not be told the agent is busy.
+  const capped = !isLocal(ip);
+  let held = false;
+  if (capped) {
+    if (!acquire(3)) {
+      return NextResponse.json({ error: "The agent is busy with other questions. Try again in a few seconds.", code: "busy" }, { status: 503 });
+    }
+    held = true;
   }
+  const finish = () => {
+    if (!held) return;
+    held = false;
+    release();
+  };
 
   const active = cfg;
   const stream = new ReadableStream<Uint8Array>({
@@ -78,7 +89,7 @@ export async function POST(req: Request) {
       } catch (err) {
         send({ t: "error", code: "internal", message: err instanceof Error ? err.message : "Something went wrong." });
       } finally {
-        release();
+        finish();
         try {
           controller.close();
         } catch {
@@ -88,6 +99,7 @@ export async function POST(req: Request) {
     },
     cancel() {
       ac.abort();
+      finish();
     },
   });
 

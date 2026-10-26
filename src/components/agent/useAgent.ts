@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TeacherShowScript } from "@/lib/teacher-shows";
-import type { AgentAnswer, AgentEvent, CodeBundle, Dry, Explain, Hook, Stage, TestRow, Verify, Viz } from "@/lib/agent/types";
+import type { AgentAnswer, AgentEvent, CodeBundle, Dry, Explain, Hook, LangPack, Stage, TestRow, Verify, Viz } from "@/lib/agent/types";
 
 export type Mark = "hook" | "explain" | "code" | "verify" | "dry" | "video";
 
@@ -20,6 +20,7 @@ export type Run = {
   provider?: string;
   explain?: Explain;
   code?: CodeBundle;
+  langs?: LangPack;
   tests?: TestRow[];
   viz?: Viz;
   verify?: Verify;
@@ -69,6 +70,8 @@ function apply(run: Run, ev: AgentEvent, now: number): Run {
       return { ...run, explain: ev.data, marks: mark(run, "explain", now) };
     case "code":
       return { ...run, code: ev.data, tests: ev.tests, viz: ev.viz, marks: mark(run, "code", now) };
+    case "langs":
+      return { ...run, langs: ev.data };
     case "verify":
       return { ...run, verify: ev.data, tests: ev.tests, marks: mark(run, "verify", now) };
     case "dry":
@@ -93,6 +96,7 @@ export function toAnswer(run: Run): AgentAnswer | null {
     hook: run.hook,
     explain: run.explain,
     code: run.code,
+    langs: run.langs,
     tests: run.tests,
     viz: run.viz,
     verify: run.verify,
@@ -118,6 +122,7 @@ function fromAnswer(a: AgentAnswer): Run {
     provider: a.provider,
     explain: a.explain,
     code: a.code,
+    langs: a.langs,
     tests: a.tests,
     viz: a.viz,
     verify: a.verify,
@@ -243,6 +248,20 @@ export function useAgent() {
     setRun(null);
   }, []);
 
+  /** Remember pseudocode and the C / Python / Java versions for an answer already on screen. */
+  const saveLangs = useCallback(
+    (id: string, langs: LangPack) => {
+      setRun((r) => (r && r.id === id ? { ...r, langs } : r));
+      const idx = historyRef.current.findIndex((h) => h.id === id);
+      if (idx >= 0) {
+        const next = historyRef.current.slice();
+        next[idx] = { ...next[idx], langs };
+        commit(next);
+      }
+    },
+    [commit],
+  );
+
   /** Swap in a script that now has Hindi lines, and remember it. */
   const updateVideo = useCallback(
     (id: string, video: TeacherShowScript) => {
@@ -257,5 +276,5 @@ export function useAgent() {
     [commit],
   );
 
-  return { run, history, ask, stop, open, remove, reset, updateVideo };
+  return { run, history, ask, stop, open, remove, reset, updateVideo, saveLangs };
 }

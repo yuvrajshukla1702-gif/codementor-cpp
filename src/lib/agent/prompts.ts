@@ -18,12 +18,14 @@ OUTPUT: exactly one JSON object and nothing else. Write the keys in THIS order: 
 - offTopic: true ONLY when the message has nothing to do with programming, computer science or interview preparation. Then set title, put one polite sentence in restated, and use {} for explain and viz, [] for tests, null for code.
 - title: at most 6 words (use the familiar name for well known problems). restated: 1-2 sentences, what is asked, with input and output.
 - difficulty: "Easy" | "Medium" | "Hard" (null for concepts). topics: up to 4 short tags.
-- explain:
-  - intuition: 2-4 short bullets that build the "aha" for a beginner. Define any jargon you use.
-  - brute: {idea, time} for the naive approach, or null if there is no meaningful one.
-  - approach: {name, steps (3-6 short imperative steps), time, space, why (one sentence on why it is correct)}.
-  - pitfalls: 1-3 classic mistakes or edge cases. followUps: 2-3 questions an interviewer may ask next.
-  - for kind "concept" also: summary (2-3 sentences), analogy (one everyday analogy), keyPoints (3-5 bullets).
+- explain, for every kind (problem, concept and code). Write so a student who has never seen this topic can follow it. Short sentences. Define a term the first time you use it.
+  - summary: 2 or 3 sentences to read first. What is being asked, in everyday words. Then the idea in one sentence. Then what the sample answer means.
+  - analogy: one everyday picture, one or two sentences. Required.
+  - keyPoints: 3 short bullets. One idea each. No unexplained jargon.
+  - intuition: 3 or 4 bullets that walk tests[0] in order, using its real values. Each bullet is one moment a person can picture ("we see an opening bracket and remember it"), not a slogan.
+  - brute: {idea, time} for the naive approach, or null if there is no meaningful one. Say what it tries and why it gets slow.
+  - approach: {name, steps (3-6 pencil steps: what to look at, then what to do), time, space, why (two plain sentences on why this answer is correct)}.
+  - pitfalls: 1-3 classic mistakes or edge cases, each saying what goes wrong and what to do instead. followUps: 2-3 questions an interviewer may ask next.
 - viz: how to draw the dry run on a whiteboard, using EXACTLY the names you pass to TR(...) in the code.
   - array: the input array or string being scanned (drawn as cells) or null. pointers: names of int index variables drawn under the cells, e.g. ["i"] or ["l","r"].
   - window: [leftName, rightName] for a sliding window, else null. table: a dp / visited vector (1-D or 2-D) drawn as a table, else null.
@@ -33,7 +35,13 @@ OUTPUT: exactly one JSON object and nothing else. Write the keys in THIS order: 
   - input is the exact text fed to stdin. expected is the exact text the program prints. Work expected out step by step; the compiler will check you.
 - code:
   - solution: C++14 for GCC 6: NO structured bindings, NO if constexpr, NO std::optional / std::gcd / std::string_view / std::variant, no C++17 library. Do NOT write #include or "using namespace std;" (they are added for you: <bits/stdc++.h> and using namespace std). No main() in solution.
-    For problems use the LeetCode form: class Solution { public: ... }; with the usual signature. Clean interview-quality code: meaningful names, short comments only where they teach. Optimal standard approach, correct for every input within typical constraints.
+    For problems use the LeetCode form: class Solution { public: ... }; with the usual signature. Correct for every input within typical constraints. Use the normal optimal idea (hash map, two pointers, stack, sliding window, dp) when that is the lesson.
+    Write it so a first-year student can read it out loud:
+    - One action per line. No nested ternaries, no macros, no bit tricks unless the question is about bits, and no one-line STL tricks.
+    - Names a person would say: left, right, seen, best, count, stack. Use i for a loop index. Do not use mp, ans, res, cur, or tmp.
+    - A comment of at most 8 words above each block (the setup, the loop, the decision, the return). The comment says why, not what the syntax does.
+    - If a line needs a comment to be understood, the line is too clever. Split it.
+    - Prefer a plain for or while that shows the idea.
     Insert 4-8 TR("note", var1, var2, ...); statements. Rules: each TR is ONE complete line on its own; inside if/else/for/while it must sit inside braces (never the unbraced body); the note is at most 8 plain words and says what is happening at this point, with no variable values inside it; the variables are in-scope names (or simple expressions such as st.size() or dp[a]) whose values should be shown, using the same names as in viz. Put TR where a teacher would pause: after initialisation, at each key decision (push, pop, compare, update, move a pointer) and just before returning. No TR may fire more than about 25 times on tests[0]. TR is provided by the runner and the student never sees it. Use TR in solution only.
   - driver: a complete int main() (plus helper functions above it if you need them) that reads the test input from stdin in exactly the format your tests use, calls the solution, and prints ONLY the answer. Print a canonical form: true / false for booleans, numbers separated by single spaces on one line for vectors, sort the output when order does not matter, no labels, no extra text. Strip a trailing '\\r' when reading lines.
   - inputFormat and outputFormat: one short sentence each.
@@ -59,6 +67,7 @@ ${SAFETY}
 
 Rules:
 - Keep the TR("note", vars...); statements (single complete lines, braces around any controlled statement) and keep the same variable names.
+- Keep the short teaching comments and the plain names. Do not compress the code to make it shorter.
 - No #include, no "using namespace std;", no main() in solution. No C++17 features.
 - Prefer fixing the code. Change a test's expected value ONLY when you can show, by careful step-by-step reasoning, that your expected value was miscomputed. Never change tests whose note starts with "statement:". Never special-case an input to make a test pass.
 - If the driver prints in a different format than the expected values, fix the driver or the expected values consistently.`;
@@ -104,9 +113,9 @@ const NARRATE_BASE = `You are a friendly teacher recording a short whiteboard vi
 You receive the problem, the approach and a list of REAL execution snapshots (events) captured by running the program on the sample input. Each event has a note (what the code is doing), the code line and the real variable values in "state".
 
 Return ONE JSON object with these keys, all plain strings except events:
-- hook: 2 sentences. What is asked, using the sample input.
+- hook: 2 or 3 short sentences. What is asked, then the sample input said out loud, then what a correct answer looks like.
 - brute: 1-2 sentences on the naive way and why it is slow. "" if the input has no brute force.
-- idea: 2 sentences. The key insight and why it works.
+- idea: 3 short sentences. Name the trick in plain words, say why a beginner should trust it, and tie it to the sample. Define the data structure the first time you say its name.
 - events: an array with EXACTLY one line per event, in order (at most 26 words each). Say what just happened and why, reading the actual numbers from "state". NEVER invent a value that is not in "state" and never contradict it. Vary your phrasing. The last line states the final outcome.
 - result: 1-2 sentences. The final answer for the sample input (the "output" field).
 - complexity: 1-2 sentences. Time and space, and why.
@@ -147,6 +156,44 @@ export const TRANSLATE_SYSTEM = `You translate spoken teaching lines into natura
 
 export function translateUser(lines: string[]): string {
   return `Translate these ${lines.length} lines:\n${JSON.stringify(lines)}`;
+}
+
+/* -------------------------------- other languages + pseudocode -------------------------------- */
+
+export const LANGS_SYSTEM = `You rewrite a verified C++ answer into forms a beginner can read. Same algorithm, same results. Return ONE JSON object and nothing else, with these string keys: pseudocode, c, python, java.
+
+${SAFETY}
+
+Rules for every version:
+- Follow the C++. Do not switch to a different algorithm. Ignore any TR(...) lines; those are not part of the program.
+- One action per line. Names a person would say: left, right, seen, best, count. Use i for a loop index.
+- A short comment above each block that says why, in at most 8 words. No clever one-liners.
+- pseudocode: plain English steps, numbered. No language syntax, no braces. 8 to 16 lines. Show the setup, the loop, the decision, and what is returned.
+- c: one complete C program (stdio.h). main reads the same stdin format and prints the same answer.
+- python: one complete script. Read stdin the same way and print the same answer. Python 3.
+- java: one public class Main. main reads the same stdin format and prints the same answer.
+- Do not add markdown fences inside the strings. Newlines inside strings are \\n.`;
+
+export function langsUser(a: {
+  title: string;
+  question: string;
+  solution: string;
+  driver: string;
+  inputFormat: string;
+  outputFormat: string;
+}): string {
+  return `Problem: ${a.title}
+Question: ${a.question.trim().slice(0, 1500)}
+Input: ${a.inputFormat}
+Output: ${a.outputFormat}
+
+Verified C++ solution:
+${a.solution.slice(0, 6000)}
+
+Driver (how input is read and the answer is printed):
+${a.driver.slice(0, 2500)}
+
+Return the JSON now.`;
 }
 
 /* ----------------------------------- no-compiler fallback ----------------------------------- */

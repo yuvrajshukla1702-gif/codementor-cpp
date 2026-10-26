@@ -33,10 +33,18 @@ export type Explain = {
   approach: { name: string; steps: string[]; time: string; space: string; why: string };
   pitfalls: string[];
   followUps: string[];
-  /** Concept answers only */
+  /** Plain-language opening. Present for every kind of answer. */
   summary?: string;
   analogy?: string;
   keyPoints?: string[];
+};
+
+/** The same answer, written so a beginner can read it. C++ stays on CodeBundle (it was compiled). */
+export type LangPack = {
+  pseudocode: string;
+  c: string;
+  python: string;
+  java: string;
 };
 
 export type CodeBundle = {
@@ -106,6 +114,7 @@ export type AgentEvent =
   | { t: "hook"; data: Hook; provider: string }
   | { t: "explain"; data: Explain }
   | { t: "code"; data: CodeBundle; tests: TestRow[]; viz: Viz }
+  | { t: "langs"; data: LangPack }
   | { t: "verify"; data: Verify; tests: TestRow[] }
   | { t: "dry"; data: Dry }
   | { t: "video"; data: TeacherShowScript; machineTraced: boolean; narrated: boolean }
@@ -122,6 +131,7 @@ export type AgentAnswer = {
   hook: Hook;
   explain?: Explain;
   code?: CodeBundle;
+  langs?: LangPack;
   tests?: TestRow[];
   viz?: Viz;
   verify?: Verify;

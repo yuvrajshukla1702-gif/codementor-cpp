@@ -133,8 +133,6 @@ export function CodeLecture({ script }: { script: CodeLectureScript }) {
     if (audio) {
       try {
         audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
       } catch {
         /* ignore */
       }
@@ -370,22 +368,42 @@ export function CodeLecture({ script }: { script: CodeLectureScript }) {
                 <option value={1.5}>1.5x</option>
                 <option value={1.8}>1.8x</option>
               </select>
-              <select
-                aria-label="Voice"
-                className="rounded bg-white/10 px-1.5 py-1 text-[11px] text-white"
-                value={lang}
-                onChange={(e) => {
-                  const next = e.target.value as VoiceLang;
-                  setLang(next);
-                  langRef.current = next;
-                  window.localStorage.setItem("cm-voice-lang", next);
-                  if (playRef.current) jump(iRef.current);
-                }}
-              >
-                <option value="hinglish">Hinglish</option>
-                <option value="english">English</option>
-                <option value="hindi">Hindi</option>
-              </select>
+              <div role="radiogroup" aria-label="Voice language" className="flex rounded-full bg-white/10 p-0.5">
+                {(
+                  [
+                    ["english", "English"],
+                    ["hinglish", "Hinglish"],
+                    ["hindi", "हिंदी"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={lang === id}
+                    onClick={() => {
+                      if (id === langRef.current) return;
+                      setLang(id);
+                      langRef.current = id;
+                      window.localStorage.setItem("cm-voice-lang", id);
+                      if (!playRef.current) return;
+                      const at = iRef.current;
+                      pause();
+                      iRef.current = at;
+                      setI(at);
+                      void playFrom(at);
+                      const audio = audioRef.current || new Audio();
+                      audioRef.current = audio;
+                      void audio.play().then(() => audio.pause()).catch(() => undefined);
+                    }}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                      lang === id ? "bg-[var(--accent)] text-[var(--accent-ink)]" : "text-white/70 hover:text-white"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 className="rounded px-1.5 py-1 text-[11px] text-white/85 hover:bg-white/10"

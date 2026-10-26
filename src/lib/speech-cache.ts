@@ -7,6 +7,36 @@ type CacheEntry = { url: string; duration: number };
 const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<CacheEntry | null>>();
 
+// Two at a time. The line being spoken jumps the queue so a prefetch cannot make the teacher go silent.
+const MAX_IN_FLIGHT = 2;
+let active = 0;
+const waiters: { priority: boolean; start: () => void }[] = [];
+
+function pump() {
+  waiters.sort((a, b) => Number(b.priority) - Number(a.priority));
+  while (active < MAX_IN_FLIGHT && waiters.length) {
+    const job = waiters.shift();
+    if (!job) break;
+    active += 1;
+    job.start();
+  }
+}
+
+function limited<T>(priority: boolean, fn: () => Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    waiters.push({
+      priority,
+      start: () => {
+        fn().then(resolve, reject).finally(() => {
+          active -= 1;
+          pump();
+        });
+      },
+    });
+    pump();
+  });
+}
+
 function key(text: string, lang: VoiceLang, speed: number) {
   return `${lang}|${speed}|${text}`;
 }
@@ -20,7 +50,8 @@ export async function fetchSpeechCached(
   text: string,
   lang: VoiceLang,
   speed: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  priority = false
 ): Promise<CacheEntry | null> {
   const k = key(text, lang, speed);
   const hit = cache.get(k);
@@ -28,7 +59,7 @@ export async function fetchSpeechCached(
   const pending = inflight.get(k);
   if (pending) return pending;
 
-  const job = (async () => {
+  const job = limited(priority, async () => {
     try {
       const res = await fetch("/api/speak", {
         method: "POST",
@@ -65,7 +96,7 @@ export async function fetchSpeechCached(
     } finally {
       inflight.delete(k);
     }
-  })();
+  });
 
   inflight.set(k, job);
   return job;

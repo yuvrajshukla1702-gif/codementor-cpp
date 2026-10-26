@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   const status: AgentStatus = {
     configured: !!cfg,
     provider: cfg?.kind ?? null,
-    model: cfg ? (cfg.kind === "openai" ? cfg.model : (geminiModelInUse() ?? cfg.model ?? "gemini-3.8-flash")) : null,
+    model: cfg ? (cfg.kind === "openai" ? cfg.model : (geminiModelInUse() ?? cfg.model ?? "gemini-3.5-flash")) : null,
     compiler,
     demo: DEMOS,
   };

@@ -19,21 +19,24 @@ import {
   NARRATE_ENGLISH,
   NARRATE_HINGLISH,
   REPAIR_SYSTEM,
+  LANGS_SYSTEM,
   SOLVE_SYSTEM,
   TRANSLATE_SYSTEM,
   dryUser,
   followupUser,
+  langsUser,
   narrateUser,
   repairUser,
   solveUser,
   translateUser,
 } from "./prompts";
 import { buildFrames, dryRows, framesForPrompt, parseTrace, resolveViz, sampleEvents, type RawEvent } from "./trace";
-import type { AgentEvent, CodeBundle, Hook, RunOutput, Stage, TestRow, Verify, Viz } from "./types";
+import type { AgentEvent, CodeBundle, Hook, LangPack, RunOutput, Stage, TestRow, Verify, Viz } from "./types";
 import {
   readExplain,
   readHook,
   validateDry,
+  validateLangs,
   validateNarration,
   validateRepair,
   validateSolve,
@@ -184,7 +187,7 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
 
     const solved = await llmJson(
       cfg,
-      { tag: "solve", system: SOLVE_SYSTEM, user: solveUser(question), temperature: 0.2, maxTokens: 7000, think: "off", signal },
+      { tag: "solve", system: SOLVE_SYSTEM, user: solveUser(question), temperature: 0.2, maxTokens: 7000, think: "off", timeoutMs: 160_000, signal },
       validateSolve,
       (acc) => streamer.feed(acc),
     );
@@ -281,6 +284,20 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
     emit({ t: "verify", data: verify, tests: rows });
     if (repaired > 0 && verify.status === "verified") emit({ t: "code", data: bundle(), tests: rows, viz: sd.viz });
 
+    // Same answer in plain steps and in C, Python and Java. Runs beside the video so it does not add a wait.
+    const langsTask: Promise<LangPack | null> = writeLangs(
+      cfg,
+      {
+        title: sd.hook.title,
+        question,
+        solution: displayCode(solution),
+        driver: cleanCpp(driver),
+        inputFormat: sd.code!.inputFormat,
+        outputFormat: sd.code!.outputFormat,
+      },
+      signal,
+    ).catch(() => null);
+
     /* 3. Dry run: really execute the instrumented program on the walkthrough input. */
     status("trace", "Running the sample step by step");
     const sample = (rows[0] ?? tests[0]) as TestRow;
@@ -338,7 +355,7 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
     if (frames.length) {
       const user = narrateUser({ hook: sd.hook, explain: sd.explain, sampleInput: sample.input, output: sampleOutput, events: framesForPrompt(frames) });
       const call = (tag: string, system: string) =>
-        llmJson(cfg, { tag, system, user, temperature: 0.4, maxTokens: 2600, think: "off", signal }, validateNarration(frames.length));
+        llmJson(cfg, { tag, system, user, temperature: 0.4, maxTokens: 2600, think: "off", timeoutMs: 90_000, signal }, validateNarration(frames.length));
       const [e, h] = await Promise.allSettled([call("narrate-english", NARRATE_ENGLISH), call("narrate-hinglish", NARRATE_HINGLISH)]);
       en = e.status === "fulfilled" ? e.value.data : null;
       hing = h.status === "fulfilled" ? h.value.data : null;
@@ -356,6 +373,9 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
       machineTraced,
     });
     emit({ t: "video", data: script, machineTraced, narrated: !!(en || hing) });
+    const langs = await langsTask;
+    if (aborted()) return;
+    if (langs) emit({ t: "langs", data: langs });
     status("done", "Done");
     emit({ t: "done", ms: since() });
   } catch (err) {
@@ -374,6 +394,28 @@ export async function answerFollowup(
 ): Promise<string> {
   const r = await llm(cfg, { tag: "followup", system: FOLLOWUP_SYSTEM, user: followupUser(a), temperature: 0.3, maxTokens: 1100, think: "off", signal });
   return r.text.trim();
+}
+
+export async function writeLangs(
+  cfg: LlmConfig,
+  a: { title: string; question: string; solution: string; driver: string; inputFormat: string; outputFormat: string },
+  signal?: AbortSignal,
+): Promise<LangPack> {
+  const r = await llmJson(
+    cfg,
+    {
+      tag: "langs",
+      system: LANGS_SYSTEM,
+      user: langsUser(a),
+      temperature: 0.2,
+      maxTokens: 6000,
+      think: "off",
+      timeoutMs: 50_000,
+      signal,
+    },
+    validateLangs,
+  );
+  return r.data;
 }
 
 export async function translateLines(cfg: LlmConfig, lines: string[], signal?: AbortSignal): Promise<string[]> {

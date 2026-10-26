@@ -1,7 +1,9 @@
 /** Tiny in-memory guards so a public deployment cannot be used to burn the owner's AI key. */
 
 const hits = new Map<string, number[]>();
-let active = 0;
+/** When each in-flight question started. A slot older than the lease is dropped, so a hung call cannot block the next one forever. */
+const holders: number[] = [];
+const LEASE_MS = 120_000;
 
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
@@ -30,11 +32,13 @@ export function allow(key: string, max: number, windowMs: number): boolean {
 }
 
 export function acquire(max = 3): boolean {
-  if (active >= max) return false;
-  active++;
+  const now = Date.now();
+  while (holders.length && now - holders[0] > LEASE_MS) holders.shift();
+  if (holders.length >= max) return false;
+  holders.push(now);
   return true;
 }
 
 export function release() {
-  active = Math.max(0, active - 1);
+  holders.shift();
 }

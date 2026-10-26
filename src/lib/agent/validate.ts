@@ -64,21 +64,21 @@ export function readExplain(x: unknown): Explain {
   const br = isObj(o.brute) ? o.brute : null;
   const steps = strArr(ap.steps, 8, 300);
   const explain: Explain = {
-    intuition: strArr(o.intuition, 5, 360),
+    intuition: strArr(o.intuition, 6, 480),
     brute: br && str(br.idea) ? { idea: str(br.idea, 300), time: str(br.time, 40) || "—" } : null,
     approach: {
       name: str(ap.name, 80) || "Approach",
       steps,
       time: str(ap.time, 40) || "—",
       space: str(ap.space, 40) || "—",
-      why: str(ap.why, 500),
+      why: str(ap.why, 700),
     },
     pitfalls: strArr(o.pitfalls, 5, 300),
     followUps: strArr(o.followUps, 4, 200),
   };
-  const summary = str(o.summary, 500);
-  const analogy = str(o.analogy, 400);
-  const keyPoints = strArr(o.keyPoints, 6, 260);
+  const summary = str(o.summary, 800);
+  const analogy = str(o.analogy, 500);
+  const keyPoints = strArr(o.keyPoints, 6, 320);
   if (summary) explain.summary = summary;
   if (analogy) explain.analogy = analogy;
   if (keyPoints.length) explain.keyPoints = keyPoints;
@@ -198,6 +198,24 @@ export function validateNarration(count: number) {
       pitfall: str(x.pitfall, 360),
     };
   };
+}
+
+export function validateLangs(x: unknown): { pseudocode: string; c: string; python: string; java: string } {
+  if (!isObj(x)) throw new ShapeError("top level must be a JSON object");
+  const block = (v: unknown, max: number) => {
+    if (Array.isArray(v)) return v.map((e) => str(e, 500)).filter(Boolean).join("\n").slice(0, max);
+    return str(v, max);
+  };
+  const pseudocode = block(x.pseudocode, 4000);
+  const c = block(x.c, 12000);
+  const python = block(x.python, 12000);
+  const java = block(x.java, 12000);
+  if (pseudocode.length < 40) throw new ShapeError('"pseudocode" is missing');
+  if (c.length < 40) throw new ShapeError('"c" is missing');
+  if (python.length < 40) throw new ShapeError('"python" is missing');
+  if (java.length < 40) throw new ShapeError('"java" is missing');
+  if (/\bTR\s*\(/.test(`${c}\n${python}\n${java}`)) throw new ShapeError("do not include TR() calls");
+  return { pseudocode, c, python, java };
 }
 
 export function validateTranslate(count: number) {

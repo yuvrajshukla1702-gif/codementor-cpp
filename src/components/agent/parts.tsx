@@ -51,9 +51,12 @@ const WORDS = new Map<string, string>();
 KEYWORDS.split(" ").forEach((w) => WORDS.set(w, "text-[#ff9ec4]"));
 TYPES.split(" ").forEach((w) => WORDS.set(w, "text-[var(--accent-2)]"));
 
-const TOKEN = /(\/\/.*$)|("(?:\\.|[^"\\\n])*")|('(?:\\.|[^'\\\n])*')|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)|(#\s*include[^\n]*)/gm;
+const EXTRA = new Set(
+  "def elif None True False and or not in is lambda import from pass print range len self String System Scanner public static void int main".split(" "),
+);
+const TOKEN = /(\/\/.*$)|(#(?!include\b)[^\n]*)|("(?:\\.|[^"\\\n])*")|('(?:\\.|[^'\\\n])*')|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)|(#\s*include[^\n]*)/gm;
 
-export function highlightCpp(code: string): ReactNode[] {
+export function highlightCpp(code: string, lang = "cpp"): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
   let k = 0;
@@ -62,11 +65,14 @@ export function highlightCpp(code: string): ReactNode[] {
     if (at > last) out.push(code.slice(last, at));
     const text = m[0];
     let cls = "";
-    if (m[1]) cls = "text-[var(--faint)] italic";
-    else if (m[2] || m[3]) cls = "text-[var(--gold)]";
-    else if (m[4]) cls = "text-[var(--ember)]";
-    else if (m[6]) cls = "text-[var(--faint)]";
-    else if (m[5]) cls = WORDS.get(text) ?? (/^[A-Z]/.test(text) ? "text-[#b9e7ff]" : "");
+    if (m[1] || m[2]) cls = "text-[var(--faint)] italic";
+    else if (m[3] || m[4]) cls = "text-[var(--gold)]";
+    else if (m[5]) cls = "text-[var(--ember)]";
+    else if (m[7]) cls = "text-[var(--faint)]";
+    else if (m[6]) {
+      const extra = (lang === "python" || lang === "java" || lang === "c") && EXTRA.has(text);
+      cls = WORDS.get(text) ?? (extra ? "text-[#ff9ec4]" : /^[A-Z]/.test(text) ? "text-[#b9e7ff]" : "");
+    }
     out.push(cls ? <span key={k++} className={cls}>{text}</span> : text);
     last = at + text.length;
   }
@@ -74,12 +80,34 @@ export function highlightCpp(code: string): ReactNode[] {
   return out;
 }
 
-export function CodeBlock({ code, className = "" }: { code: string; className?: string }) {
+export function CodeBlock({
+  code,
+  className = "",
+  numbered = false,
+  lang = "cpp",
+}: {
+  code: string;
+  className?: string;
+  numbered?: boolean;
+  lang?: string;
+}) {
+  const lines = code.replace(/\n$/, "").split("\n");
   return (
     <pre
-      className={`overflow-x-auto rounded-xl border border-[var(--line)] bg-[#080b10] p-4 font-mono text-[12.5px] leading-[1.65] text-[var(--ink)] ${className}`}
+      className={`overflow-x-auto rounded-xl border border-[var(--line)] bg-[#080b10] p-4 font-mono text-[13px] leading-[1.7] text-[var(--ink)] ${className}`}
     >
-      <code>{highlightCpp(code)}</code>
+      <code>
+        {lines.map((line, i) => (
+          <span key={i} className="block whitespace-pre">
+            {numbered && (
+              <span className="mr-4 inline-block w-8 select-none text-right text-[var(--faint)]" aria-hidden>
+                {i + 1}
+              </span>
+            )}
+            {line ? (lang === "text" ? line : highlightCpp(line, lang)) : " "}
+          </span>
+        ))}
+      </code>
     </pre>
   );
 }

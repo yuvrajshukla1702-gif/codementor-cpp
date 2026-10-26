@@ -384,7 +384,9 @@ function ErrorCard({ run, onRetry, onSetup }: { run: Run; onRetry: () => void; o
         <Icon name="info" size={14} strokeWidth={2.4} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-display text-lg text-[var(--ink)]">{ERROR_TITLES[err.code] ?? "Something went wrong"}</p>
+        <p className="font-display text-lg text-[var(--ink)]">
+          {err.code === "busy" && /Gemini is busy/i.test(err.message) ? "Gemini is busy" : (ERROR_TITLES[err.code] ?? "Something went wrong")}
+        </p>
         <p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">{err.message}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {keyProblem && (
@@ -472,7 +474,7 @@ function Trust() {
 /* ------------------------------------------ page ------------------------------------------ */
 
 export default function AskClient({ initialQ = "" }: { initialQ?: string }) {
-  const { run, history, ask, stop, open, remove, reset, updateVideo } = useAgent();
+  const { run, history, ask, stop, open, remove, reset, updateVideo, saveLangs } = useAgent();
   const { status, failed, refresh } = useStatus();
   const [text, setText] = useState("");
   const [keyOpen, setKeyOpen] = useState(false);
@@ -596,6 +598,19 @@ export default function AskClient({ initialQ = "" }: { initialQ?: string }) {
         </div>
       )}
 
+      <div ref={progressRef} className="space-y-5 scroll-mt-4">
+        {run?.running && <Progress run={run} onStop={stop} />}
+        {run?.stopped && (
+          <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
+            <Icon name="info" size={14} /> Stopped. Whatever was ready is shown below.
+          </p>
+        )}
+        {run?.error && <ErrorCard run={run} onRetry={retry} onSetup={revealSetup} />}
+        {run && run.hook && (
+          <AnswerView run={run} onVideo={(s) => updateVideo(run.id, s)} onLangs={(langs) => saveLangs(run.id, langs)} />
+        )}
+      </div>
+
       <form
         className="card relative p-3 transition-[border-color,box-shadow] focus-within:!border-[var(--accent-line)] focus-within:!shadow-[0_0_0_3px_var(--accent-soft)] sm:p-4"
         onSubmit={(e) => {
@@ -678,20 +693,10 @@ export default function AskClient({ initialQ = "" }: { initialQ?: string }) {
         onOpen={(a) => {
           open(a);
           setText(a.question);
+          window.setTimeout(() => progressRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
         }}
         onRemove={remove}
       />
-
-      <div ref={progressRef} className="space-y-5 scroll-mt-20">
-        {run?.running && <Progress run={run} onStop={stop} />}
-        {run?.stopped && (
-          <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
-            <Icon name="info" size={14} /> Stopped. Whatever was ready is shown below.
-          </p>
-        )}
-        {run?.error && <ErrorCard run={run} onRetry={retry} onSetup={revealSetup} />}
-        {run && run.hook && <AnswerView run={run} onVideo={(s) => updateVideo(run.id, s)} />}
-      </div>
 
       {!run && (
         <>

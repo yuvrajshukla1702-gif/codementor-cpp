@@ -19,9 +19,10 @@ export async function synthesize(text: string, voice: string, rate = "+0%"): Pro
   if (hit) return hit;
 
   const id = randomUUID().replace(/-/g, "");
+  // The old Bing host now rejects the socket. This host still accepts the same token.
   const url =
-    "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1" +
-    `?TrustedClientToken=${TOKEN}&ConnectionId=${id}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=1-${CHROMIUM}`;
+    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1" +
+    `?Ocp-Apim-Subscription-Key=${TOKEN}&ConnectionId=${id}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=1-${CHROMIUM}`;
 
   const ws = new WebSocket(url, {
     headers: {

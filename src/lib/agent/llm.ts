@@ -116,11 +116,11 @@ export async function llm(cfg: LlmConfig, call: LlmCall, onText?: OnText): Promi
       if (!(err instanceof LlmError)) throw err;
       const modelBusy = err.kind === "server" && /high demand|overloaded/i.test(err.message);
       const retryable =
-        (err.kind === "server" && !modelBusy) ||
+        err.kind === "server" ||
         err.kind === "network" ||
         (err.kind === "quota" && (err.retryAfterMs ?? 99_999) <= 9_000);
       if (!retryable || attempt === 2) throw err;
-      await sleep(err.retryAfterMs ?? 700 * (attempt + 1), call.signal);
+      await sleep(modelBusy ? 4_000 * (attempt + 1) : (err.retryAfterMs ?? 700 * (attempt + 1)), call.signal);
     }
   }
   throw lastErr instanceof Error ? lastErr : new LlmError("Unknown AI error", "server");
@@ -215,6 +215,20 @@ async function readSse(res: Response, onData: (json: unknown) => void) {
 const GEMINI = (process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta").trim().replace(/\/+$/, "");
 let geminiModel: string | null = null;
 let thinkingConfigOk = true;
+/** Models that just answered "high demand". They go to the back of the line for a minute. */
+const busyUntil = new Map<string, number>();
+
+/** Prefer a Flash model that is still offered to new keys, and leave the overloaded 3.8 model for last. */
+const PREFERRED_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-3.1-flash-lite",
+  "gemini-3.8-flash",
+  "gemini-flash-latest",
+];
 
 function pickGeminiFlash(names: string[]): string | null {
   const scored = names
@@ -245,10 +259,15 @@ export function geminiModelInUse() {
 /** Cheap key check: list models. Does not spend a generateContent call. */
 export async function probeGemini(apiKey: string, timeoutMs = 15_000): Promise<string> {
   const names = await listGeminiModels(apiKey, AbortSignal.timeout(timeoutMs));
-  const model = pickGeminiFlash(names) ?? names.find((n) => /^gemini/i.test(n)) ?? names[0];
+  const model = PREFERRED_MODELS.find((n) => names.includes(n)) ?? pickGeminiFlash(names) ?? names.find((n) => /^gemini/i.test(n)) ?? names[0];
   if (!model) throw new LlmError("No usable Gemini model was found for this key.", "model");
-  geminiModel = model;
   return model;
+}
+
+function modelSignal(call: LlmCall): AbortSignal {
+  // One model gets 70s. A silent "thinking" call used to burn the whole wait and then fail.
+  const limit = AbortSignal.timeout(Math.min(call.timeoutMs ?? 75_000, 70_000));
+  return call.signal ? AbortSignal.any([call.signal, limit]) : limit;
 }
 
 async function geminiOnce(
@@ -256,31 +275,39 @@ async function geminiOnce(
   call: LlmCall,
   onText?: OnText,
 ): Promise<Omit<LlmResult, "ms">> {
-  const signal = withTimeout(call);
   const tried: string[] = [];
-  const candidates = [
-    geminiModel,
-    cfg.model,
-    "gemini-3.8-flash",
-    "gemini-3-flash",
-    "gemini-2.5-flash",
-    "gemini-flash-latest",
-    "gemini-2.0-flash",
-  ].filter((m, i, a): m is string => Boolean(m) && a.indexOf(m) === i);
+  const now = Date.now();
+  const candidates = [geminiModel, cfg.model, ...PREFERRED_MODELS]
+    .filter((m, i, a): m is string => Boolean(m) && a.indexOf(m) === i)
+    .sort((a, b) => Number((busyUntil.get(a) ?? 0) > now) - Number((busyUntil.get(b) ?? 0) > now));
   let discovered = false;
   let lastBusy: LlmError | null = null;
+  let timeouts = 0;
   for (let i = 0; i < candidates.length; i++) {
     const model = candidates[i];
     tried.push(model);
+    const signal = modelSignal(call);
     try {
       onText?.("");
       const text = await geminiGenerate(cfg.apiKey, model, call, signal, onText);
       geminiModel = model;
       return { text, model };
     } catch (err) {
+      if (call.signal?.aborted) throw new LlmError("Cancelled", "aborted");
+      const timedOut = err instanceof LlmError && err.kind === "timeout";
       const busy = err instanceof LlmError && err.kind === "server" && /high demand|overloaded/i.test(err.message);
+      if (timedOut) {
+        timeouts += 1;
+        busyUntil.set(model, Date.now() + 60_000);
+        if (geminiModel === model) geminiModel = null;
+        if (timeouts >= 2) throw err;
+        continue;
+      }
       if (!(err instanceof LlmError) || (err.kind !== "model" && !busy)) throw err;
-      if (busy) lastBusy = err;
+      if (busy) {
+        lastBusy = err;
+        busyUntil.set(model, Date.now() + 60_000);
+      }
       if (geminiModel === model) geminiModel = null;
       if (i === candidates.length - 1 && !discovered) {
         discovered = true;
@@ -312,9 +339,8 @@ async function geminiGenerate(
   signal: AbortSignal,
   onText?: OnText,
 ): Promise<string> {
-  // Omit thinkingConfig when thinking is off. Sending thinkingBudget: 0 hangs on some
-  // Gemini 3 models instead of turning thinking off.
-  const budget = call.think === "low" ? 1024 : undefined;
+  // Gemini 3 thinks at "medium" by default and can stay silent until the request is aborted.
+  // "low" is the fast setting that still writes correct code. thinkingBudget: 0 hangs these models.
   const generationConfig: Record<string, unknown> = {
     temperature: call.temperature ?? 0.3,
     maxOutputTokens: call.maxTokens ?? 8192,
@@ -325,8 +351,8 @@ async function geminiGenerate(
       systemInstruction: { parts: [{ text: call.system }] },
       contents: [{ role: "user", parts: [{ text: call.user }] }],
       generationConfig:
-        withThinking && budget !== undefined && thinkingConfigOk
-          ? { ...generationConfig, thinkingConfig: { thinkingBudget: budget } }
+        withThinking && thinkingConfigOk
+          ? { ...generationConfig, thinkingConfig: { thinkingLevel: "low" } }
           : generationConfig,
     });
 
@@ -346,7 +372,7 @@ async function geminiGenerate(
   if (!res.ok) {
     const e = await readError(res);
     // Some models reject thinking settings (or refuse budget 0). Retry once without them.
-    if (res.status === 400 && /think|budget/i.test(e.message) && budget !== undefined) {
+    if (res.status === 400 && /think|budget/i.test(e.message)) {
       thinkingConfigOk = false;
       res = await post(false);
       if (!res.ok) throw await readError(res);

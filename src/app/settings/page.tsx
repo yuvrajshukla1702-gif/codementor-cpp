@@ -16,8 +16,8 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export default function SettingsPage() {
-  const [leetcodeUsername, setUser] = useState("sM1BAu3vUo");
-  const [hackerrankUsername, setHrUser] = useState("yuvrajshukla1702");
+  const [leetcodeUsername, setUser] = useState("");
+  const [hackerrankUsername, setHrUser] = useState("");
   const [geminiApiKey, setKey] = useState("");
   const [cursorApiKey, setCursorKey] = useState("");
   const [leetcodeSession, setSession] = useState("");
@@ -36,8 +36,8 @@ export default function SettingsPage() {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((j) => {
-        setUser(j.leetcodeUsername || "sM1BAu3vUo");
-        setHrUser(j.hackerrankUsername || "yuvrajshukla1702");
+        setUser(j.leetcodeUsername || "");
+        setHrUser(j.hackerrankUsername || "");
         setTone(j.tutorTone || "hinglish");
         setMeta(j);
       })
@@ -82,8 +82,7 @@ export default function SettingsPage() {
         <p className="eyebrow">Settings</p>
         <h1 className="mt-1 font-display text-4xl tracking-[-0.04em]">Make it yours</h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Rich tutor is wired automatically: <strong className="text-[var(--ink)]">local Ollama</strong> (already on this
-          PC) → optional Gemini / Cursor keys if you add them later. No paid subscription required.
+          Lessons, the voice, and the C++ judge run on this computer. Ask AI uses your Gemini key when one is saved.
         </p>
         <p className="chip chip-brand mt-3 !h-7">
           <Icon name="sparkles" size={12} /> Active tutor: {tutorLabel}
@@ -92,11 +91,11 @@ export default function SettingsPage() {
 
       <div className="card space-y-5 p-5 sm:p-6">
         <Field label="LeetCode username">
-          <input className="input" value={leetcodeUsername} onChange={(e) => setUser(e.target.value)} />
+          <input className="input" value={leetcodeUsername} onChange={(e) => setUser(e.target.value)} placeholder="Your LeetCode username" />
         </Field>
 
         <Field label="HackerRank username">
-          <input className="input" value={hackerrankUsername} onChange={(e) => setHrUser(e.target.value)} />
+          <input className="input" value={hackerrankUsername} onChange={(e) => setHrUser(e.target.value)} placeholder="Your HackerRank username" />
         </Field>
 
         <Field
@@ -138,7 +137,7 @@ export default function SettingsPage() {
         </Field>
 
         <Field label="Tutor tone">
-          <select className="input" value={tutorTone} onChange={(e) => setTone(e.target.value)}>
+          <select className="input [color-scheme:dark]" value={tutorTone} onChange={(e) => setTone(e.target.value)}>
             <option value="hinglish">Hinglish (YouTube teacher)</option>
             <option value="english">English</option>
           </select>

@@ -6,13 +6,12 @@ import { Icon } from "@/components/ui/icons";
 import { Pips } from "@/components/ui/kit";
 import type { TeacherShowScript } from "@/lib/teacher-shows";
 import type { VoiceLang } from "@/lib/speech-cache";
-import type { RunOutput, Verify } from "@/lib/agent/types";
+import type { LangPack, RunOutput, Verify } from "@/lib/agent/types";
 import { CodeBlock, CopyButton, Pill, RichText, Spinner, compilerName } from "./parts";
 import type { Run } from "./useAgent";
 
-type Tab = "explain" | "dry" | "code" | "try" | "chat";
-
 const fmtInput = (s: string) => s.trim().replace(/\n/g, " ⏎ ") || "(empty)";
+const langStarted = new Set<string>();
 const secs = (ms?: number) => (ms == null ? "" : `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`);
 
 /* ------------------------------------------ banner ------------------------------------------ */
@@ -90,17 +89,37 @@ function Section({ title, children, tone }: { title: string; children: ReactNode
 function ExplainTab({ run, onFollow }: { run: Run; onFollow: (q: string) => void }) {
   const e = run.explain;
   if (!e) return <Pending label="Writing the explanation" />;
+  const sampleIn = (run.dry?.sampleInput || run.tests?.[0]?.input || "").trim();
+  const sampleOut = (run.dry?.sampleOutput || run.tests?.[0]?.expected || "").trim();
   return (
     <div className="space-y-6">
-      {e.summary && <p className="text-[15px] leading-relaxed text-[var(--ink)]">{e.summary}</p>}
+      {e.summary && <p className="text-[16px] leading-relaxed text-[var(--ink)]">{e.summary}</p>}
+      {(sampleIn || sampleOut) && (
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--panel-2)] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">One example, before the general rule</p>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--ink)]">
+            Start with a tiny input. The video above uses this same example, so you can match each spoken line to these values.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--faint)]">We give the program</p>
+              <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[13px] text-[var(--ink)]">{sampleIn || "(nothing)"}</pre>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--faint)]">It should answer</p>
+              <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[13px] text-[var(--accent)]">{sampleOut || "—"}</pre>
+            </div>
+          </div>
+        </div>
+      )}
       {e.analogy && (
         <div className="rounded-xl border border-[rgba(124,196,255,0.25)] bg-[rgba(124,196,255,0.06)] p-4 text-sm leading-relaxed">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-2)]">Think of it like this</p>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-2)]">Picture it like this</p>
           {e.analogy}
         </div>
       )}
       {e.keyPoints && e.keyPoints.length > 0 && (
-        <Section title="Key points">
+        <Section title="Remember these">
           <ul className="space-y-2">
             {e.keyPoints.map((p, i) => (
               <li key={i} className="flex gap-2.5 text-sm leading-relaxed">
@@ -113,7 +132,7 @@ function ExplainTab({ run, onFollow }: { run: Run; onFollow: (q: string) => void
       )}
 
       {e.intuition.length > 0 && (
-        <Section title="The idea in plain words">
+        <Section title="What happens, in order">
           <ol className="space-y-2.5">
             {e.intuition.map((p, i) => (
               <li key={i} className="flex gap-3 text-sm leading-relaxed">
@@ -128,7 +147,7 @@ function ExplainTab({ run, onFollow }: { run: Run; onFollow: (q: string) => void
       <div className={`grid gap-3 ${e.brute ? "sm:grid-cols-2" : ""}`}>
         {e.brute && (
           <div className="rounded-xl border border-[var(--line)] bg-[var(--panel-2)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Brute force</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">The slow way</p>
             <p className="mt-2 text-sm leading-relaxed text-[var(--ink)]/85">{e.brute.idea}</p>
             <div className="mt-3">
               <Pill tone="bad">Time {e.brute.time}</Pill>
@@ -136,7 +155,7 @@ function ExplainTab({ run, onFollow }: { run: Run; onFollow: (q: string) => void
           </div>
         )}
         <div className="rounded-xl border border-[var(--accent-line)] bg-[var(--accent-soft)] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">Better: {e.approach.name}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">The way we use: {e.approach.name}</p>
           {e.approach.why && <p className="mt-2 text-sm leading-relaxed text-[var(--ink)]/90">{e.approach.why}</p>}
           <div className="mt-3 flex flex-wrap gap-1.5">
             <Pill tone="ok">Time {e.approach.time}</Pill>
@@ -146,7 +165,7 @@ function ExplainTab({ run, onFollow }: { run: Run; onFollow: (q: string) => void
       </div>
 
       {e.approach.steps.length > 0 && (
-        <Section title="Steps">
+        <Section title="Do it with a pencil">
           <ol className="space-y-2">
             {e.approach.steps.map((s, i) => (
               <li key={i} className="flex gap-3 text-sm leading-relaxed">
@@ -247,27 +266,84 @@ function DryTab({ run }: { run: Run }) {
   );
 }
 
-function CodeTab({ run }: { run: Run }) {
+const CODE_LANGS = [
+  { id: "pseudo", label: "Pseudocode" },
+  { id: "c", label: "C" },
+  { id: "cpp", label: "C++" },
+  { id: "python", label: "Python" },
+  { id: "java", label: "Java" },
+] as const;
+
+type CodeLang = (typeof CODE_LANGS)[number]["id"];
+
+function CodeTab({
+  run,
+  lang,
+  busy,
+  err,
+  onRetry,
+}: {
+  run: Run;
+  lang: CodeLang;
+  busy: boolean;
+  err: string;
+  onRetry: () => void;
+}) {
   const c = run.code;
-  if (!c) return <Pending label="Writing the C++" />;
-  const full = `#include <bits/stdc++.h>\nusing namespace std;\n\n${c.solution}\n\n${c.driver}\n`;
+  if (!c) return <Pending label="Writing the solution" />;
+
+  const full = `// These two lines turn on the C++ tools. The solution is the class below.\n#include <bits/stdc++.h>\nusing namespace std;\n\n${c.solution.trim()}\n\n${c.driver.trim()}\n`;
+  const shown =
+    lang === "cpp"
+      ? full
+      : lang === "pseudo"
+        ? (run.langs?.pseudocode ?? "")
+        : lang === "c"
+          ? (run.langs?.c ?? "")
+          : lang === "python"
+            ? (run.langs?.python ?? "")
+            : (run.langs?.java ?? "");
+  const blurb =
+    lang === "pseudo"
+      ? "The same steps, in plain English. Read this before the real code."
+      : lang === "cpp"
+        ? "This is the program that was compiled and tested. The class is the solution. main reads the input and prints the answer."
+        : `The same steps as the tested C++, written in ${lang === "c" ? "C" : lang === "python" ? "Python" : "Java"}.`;
   const rows = run.tests ?? [];
+  const waiting = lang !== "cpp" && !shown;
+
   return (
     <div className="space-y-5">
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Pill tone="neutral">C++14</Pill>
-          {run.verify?.status === "verified" && (
+          {lang === "cpp" && run.verify?.status === "verified" && (
             <Pill tone="ok">
               <Icon name="check" size={12} strokeWidth={2.6} /> tested
             </Pill>
           )}
-          <span className="ml-auto flex gap-1">
-            <CopyButton text={c.solution} label="Copy solution" />
-            <CopyButton text={full} label="Copy full program" />
-          </span>
+          {shown && (
+            <span className="ml-auto flex gap-1">
+              <CopyButton text={shown} label={lang === "cpp" ? "Copy full program" : "Copy"} />
+              {lang === "cpp" && <CopyButton text={c.solution} label="Copy solution only" />}
+            </span>
+          )}
         </div>
-        <CodeBlock code={c.solution} />
+        <p className="mb-3 text-sm leading-relaxed text-[var(--muted)]">{blurb}</p>
+        {waiting && busy && (
+          <p className="mb-3 flex items-center gap-2 text-sm text-[var(--muted)]">
+            <Spinner /> Writing this version…
+          </p>
+        )}
+        {waiting && !busy && (
+          <div className="mb-3 rounded-xl border border-[var(--line)] bg-white/[0.03] px-4 py-3">
+            <p className="text-sm text-[var(--muted)]">{err || "This version is not ready yet."}</p>
+            <button type="button" className="btn btn-primary mt-3" onClick={onRetry} disabled={busy}>
+              {busy ? <Spinner size={13} /> : null}
+              Try again
+            </button>
+          </div>
+        )}
+        {shown && <CodeBlock code={shown} numbered lang={lang === "pseudo" ? "text" : lang} />}
       </div>
 
       {rows.length > 0 && (
@@ -485,20 +561,112 @@ function ChatTab({ run, seed }: { run: Run; seed: { q: string; n: number } | nul
 
 /* ------------------------------------------ answer ------------------------------------------ */
 
-export function AnswerView({ run, onVideo }: { run: Run; onVideo: (script: TeacherShowScript) => void }) {
-  const [tab, setTab] = useState<Tab>("explain");
+function LangBar({
+  lang,
+  busy,
+  onPick,
+}: {
+  lang: CodeLang;
+  busy: boolean;
+  onPick: (id: CodeLang) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--panel)] px-3 py-3" role="tablist" aria-label="Code language">
+      <p className="mb-2 text-sm font-semibold text-[var(--ink)]">Language</p>
+      <div className="flex flex-wrap gap-2">
+        {CODE_LANGS.map((opt) => {
+          const on = lang === opt.id;
+          return (
+            <button key={opt.id} type="button" role="tab" aria-selected={on} onClick={() => onPick(opt.id)} className={on ? "btn btn-primary" : "btn"}>
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {busy && (
+        <p className="mt-2 flex items-center gap-2 text-sm text-[var(--muted)]">
+          <Spinner size={13} /> Writing pseudocode, C, Python and Java…
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function AnswerView({
+  run,
+  onVideo,
+  onLangs,
+}: {
+  run: Run;
+  onVideo: (script: TeacherShowScript) => void;
+  onLangs: (langs: LangPack) => void;
+}) {
+  const [picked, setPicked] = useState<CodeLang | null>(null);
+  const [langBusy, setLangBusy] = useState(false);
+  const [langErr, setLangErr] = useState("");
   const [seed, setSeed] = useState<{ q: string; n: number } | null>(null);
   const [hindi, setHindi] = useState<{ state: "idle" | "loading" | "error"; msg?: string }>({ state: "idle" });
   const hindiBusy = useRef(false);
   const videoRef = useRef(run.video);
   videoRef.current = run.video;
+  const lang: CodeLang = picked ?? (run.langs ? "python" : "cpp");
 
-  // A new answer starts on the explanation again.
+  const loadLangs = useCallback(async () => {
+    const c = run.code;
+    if (!c || langBusy) return;
+    setLangBusy(true);
+    setLangErr("");
+    try {
+      const res = await fetch("/api/agent/languages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: run.hook?.title,
+          question: run.question,
+          solution: c.solution,
+          driver: c.driver,
+          inputFormat: c.inputFormat,
+          outputFormat: c.outputFormat,
+        }),
+      });
+      const j = (await res.json()) as { langs?: LangPack; error?: string };
+      if (!res.ok || !j.langs) {
+        setLangErr(j.error || "Could not write the other versions.");
+        return;
+      }
+      onLangs(j.langs);
+    } catch {
+      setLangErr("Could not reach the server.");
+    } finally {
+      setLangBusy(false);
+    }
+  }, [langBusy, onLangs, run.code, run.hook?.title, run.question]);
+
+  // A new answer starts clean. Other languages are fetched once the C++ is ready.
   useEffect(() => {
-    setTab("explain");
+    setPicked(null);
+    setLangErr("");
     setSeed(null);
     setHindi({ state: "idle" });
+    langTries.current = 0;
   }, [run.id]);
+
+  const langTries = useRef(0);
+
+  useEffect(() => {
+    if (!run.code || run.langs || run.running || langStarted.has(run.id)) return;
+    langStarted.add(run.id);
+    void loadLangs();
+  }, [loadLangs, run.code, run.id, run.langs, run.running]);
+
+  useEffect(() => {
+    if (!langErr || run.langs || langBusy || langTries.current >= 4) return;
+    const wait = window.setTimeout(() => {
+      langTries.current += 1;
+      void loadLangs();
+    }, 15000);
+    return () => window.clearTimeout(wait);
+  }, [langBusy, langErr, loadLangs, run.langs]);
 
   const onLang = useCallback(
     async (lang: VoiceLang) => {
@@ -529,13 +697,10 @@ export function AnswerView({ run, onVideo }: { run: Run; onVideo: (script: Teach
   const { hook } = run;
   if (!hook) return null;
 
-  const tabs: Array<{ id: Tab; label: string; ready: boolean; icon: "book" | "list" | "code" | "terminal" | "sparkles" }> = [
-    { id: "explain", label: "Explanation", ready: !!run.explain, icon: "book" },
-    { id: "dry", label: "Dry run", ready: !!run.dry || !run.running, icon: "list" },
-    { id: "code", label: "Code", ready: !!run.code, icon: "code" },
-    { id: "try", label: "Try input", ready: !!run.code, icon: "terminal" },
-    { id: "chat", label: "Ask more", ready: true, icon: "sparkles" },
-  ];
+  function pickLang(id: CodeLang) {
+    setPicked(id);
+    if (id !== "cpp" && !run.langs && !langBusy) void loadLangs();
+  }
 
   return (
     <div className="cm-fade space-y-5">
@@ -557,82 +722,80 @@ export function AnswerView({ run, onVideo }: { run: Run; onVideo: (script: Teach
         {hook.restated && <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-[var(--muted)]">{hook.restated}</p>}
       </header>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        {/* sticks beside the tabs only on screens tall enough to fit the whole player */}
-        <div className="min-w-0 space-y-3 [@media(min-width:1280px)_and_(min-height:860px)]:sticky [@media(min-width:1280px)_and_(min-height:860px)]:top-20">
-          <VerifyBanner verify={run.verify} pending={run.running} hasCode={!!run.code} />
+      <LangBar lang={lang} busy={langBusy && !run.langs} onPick={pickLang} />
+      {langErr && !run.langs && (
+        <p className="flex items-start gap-2 text-sm text-[var(--gold)]">
+          <Icon name="info" size={14} className="mt-0.5 shrink-0" />
+          {langErr} Trying again in a few seconds.
+        </p>
+      )}
+
+      <div className="space-y-3">
+        <VerifyBanner verify={run.verify} pending={run.running} hasCode={!!run.code} />
+        <div className="overflow-hidden rounded-xl">
           {run.video ? (
             <TeacherShow key={run.video.id} script={run.video} hidePractice onLangChange={onLang} />
           ) : run.running ? (
             <VideoSkeleton msg={run.stage === "narrate" ? "Writing the voice-over line by line…" : run.stageMsg} />
           ) : null}
-          {hindi.state === "loading" && (
-            <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              <Spinner size={12} /> Translating the voice-over to Hindi…
-            </p>
-          )}
-          {hindi.state === "error" && (
-            <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
-              <Icon name="info" size={13} className="mt-px shrink-0" /> Hindi voice is not ready ({hindi.msg}). It will read the English lines instead.
-            </p>
-          )}
-          {run.video && !run.narrated && (
-            <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
-              <Icon name="info" size={13} className="mt-px shrink-0" /> The AI could not write the voice-over this time, so these are plain captions built from the real run.
-            </p>
-          )}
-          {run.video && run.machineTraced === false && (
-            <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
-              <Icon name="info" size={13} className="mt-px shrink-0" /> This walk-through was worked out by the AI, not by executing the code.
-            </p>
-          )}
         </div>
-
-        <div className="card min-w-0 overflow-hidden">
-          <div role="tablist" aria-label="Answer sections" className="no-scrollbar flex gap-1 overflow-x-auto border-b border-[var(--line)] px-2 pt-2">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                role="tab"
-                type="button"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
-                className={`relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                  tab === t.id ? "text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
-                }`}
-              >
-                {t.ready ? <Icon name={t.icon} size={14} /> : <Spinner size={11} />}
-                {t.label}
-                {tab === t.id && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[var(--accent)]" />}
-              </button>
-            ))}
-          </div>
-          <div className="p-5 sm:p-6">
-            {/* every panel stays mounted so typed input and the chat survive tab switches */}
-            <div role="tabpanel" hidden={tab !== "explain"}>
-              <ExplainTab
-                run={run}
-                onFollow={(q) => {
-                  setSeed({ q, n: Date.now() });
-                  setTab("chat");
-                }}
-              />
-            </div>
-            <div role="tabpanel" hidden={tab !== "dry"}>
-              <DryTab run={run} />
-            </div>
-            <div role="tabpanel" hidden={tab !== "code"}>
-              <CodeTab run={run} />
-            </div>
-            <div role="tabpanel" hidden={tab !== "try"}>
-              <TryTab key={run.id} run={run} />
-            </div>
-            <div role="tabpanel" hidden={tab !== "chat"}>
-              <ChatTab key={run.id} run={run} seed={seed} />
-            </div>
-          </div>
-        </div>
+        {hindi.state === "loading" && (
+          <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
+            <Spinner size={12} /> Translating the voice-over to Hindi…
+          </p>
+        )}
+        {hindi.state === "error" && (
+          <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
+            <Icon name="info" size={13} className="mt-px shrink-0" /> Hindi voice is not ready ({hindi.msg}). It will read the English lines instead.
+          </p>
+        )}
+        {run.video && !run.narrated && (
+          <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
+            <Icon name="info" size={13} className="mt-px shrink-0" /> The AI could not write the voice-over this time, so these are plain captions built from the real run.
+          </p>
+        )}
+        {run.video && run.machineTraced === false && (
+          <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
+            <Icon name="info" size={13} className="mt-px shrink-0" /> This walk-through was worked out by the AI, not by executing the code.
+          </p>
+        )}
       </div>
+
+      <section className="card p-5 sm:p-6">
+        <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Explanation</h3>
+        <ExplainTab
+          run={run}
+          onFollow={(q) => {
+            setSeed({ q, n: Date.now() });
+            document.getElementById("answer-ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Dry run</h3>
+        <DryTab run={run} />
+      </section>
+
+      <section id="answer-code" className="card scroll-mt-20 overflow-hidden">
+        <h3 className="px-5 pt-5 text-sm font-semibold text-[var(--ink)] sm:px-6">Code</h3>
+        <div className="mt-3">
+          <LangBar lang={lang} busy={langBusy && !run.langs} onPick={(id) => setPicked(id)} />
+        </div>
+        <div className="p-5 sm:p-6">
+          <CodeTab run={run} lang={lang} busy={langBusy} err={langErr} onRetry={() => void loadLangs()} />
+        </div>
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Try it</h3>
+        <TryTab key={run.id} run={run} />
+      </section>
+
+      <section id="answer-ask" className="card scroll-mt-20 p-5 sm:p-6">
+        <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Ask more</h3>
+        <ChatTab key={run.id} run={run} seed={seed} />
+      </section>
     </div>
   );
 }
