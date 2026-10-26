@@ -77,8 +77,9 @@ function findMethod(src: string): Method | null {
       params.push(param);
     }
     if (!ok) continue;
-    const ret = match[1].replace(/\s+/g, "") as Kind;
-    return { ret: ret === "longlong" ? "long" : ret, name, params, className };
+    const raw = match[1].replace(/\s+/g, "");
+    const ret: Kind = raw === "longlong" ? "long" : (raw as Kind);
+    return { ret, name, params, className };
   }
   return null;
 }
