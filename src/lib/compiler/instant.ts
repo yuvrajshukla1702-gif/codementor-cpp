@@ -1,4 +1,5 @@
 import type { CompilerLangId } from "./languages";
+import { needsFullCompiler, normalizeSource } from "./prepare";
 
 export type InstantResult = {
   ok: boolean;
@@ -26,7 +27,7 @@ function clip(text: string) {
 }
 
 function needsRealCompiler(message: string) {
-  return /cannot find library|not supported|is not implemented/i.test(message);
+  return /cannot find library|not supported|is not implemented|parsing failure/i.test(message);
 }
 
 let skulptLoading: Promise<void> | null = null;
@@ -97,13 +98,15 @@ async function runPython(code: string, stdin: string): Promise<InstantResult | n
 
 async function runCppFamily(code: string, stdin: string): Promise<InstantResult | null> {
   const started = Date.now();
+  const src = normalizeSource(code);
+  if (needsFullCompiler(src)) return null;
   const loaded = await import("JSCPP");
   const JSCPP = (loaded.default ?? loaded) as {
     run: (code: string, input: string, config: { stdio: { write: (s: string) => void }; maxTimeout: number }) => number;
   };
   let stdout = "";
   try {
-    const exit = JSCPP.run(code, stdin, {
+    const exit = JSCPP.run(src, stdin, {
       stdio: {
         write: (text) => {
           if (stdout.length < MAX_OUT) stdout += text;

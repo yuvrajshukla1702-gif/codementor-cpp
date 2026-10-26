@@ -26,6 +26,7 @@ type RunResult = {
   truncated?: boolean;
   file?: string;
   message?: string;
+  note?: string;
 };
 
 type Draft = {
@@ -314,6 +315,7 @@ export function CompilerStudio() {
                 {draft.lang === "java" ? " In Java the class has to be named Main." : ""}
               </p>
             )}
+            {!running && result?.note && <p className="mb-2 max-w-xl text-sm leading-relaxed text-[var(--muted)]">{result.note}</p>}
             {!running && result?.message && <p className="text-sm text-[var(--ember)]">{result.message}</p>}
             {!running && stdout && (
               <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-[var(--ink)]">{stdout}</pre>
@@ -323,7 +325,7 @@ export function CompilerStudio() {
                 {stderr}
               </pre>
             )}
-            {!running && result && !result.message && !stdout && !stderr && (
+            {!running && result && !result.message && !result.note && !stdout && !stderr && (
               <p className="font-mono text-[13px] text-[var(--muted)]">No output.</p>
             )}
           </div>

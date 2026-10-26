@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { allow, clientIp, isLocal } from "@/lib/agent/limit";
 import { compilerLang } from "@/lib/compiler/languages";
+import { prepareC, prepareCpp } from "@/lib/compiler/prepare";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,9 +59,11 @@ export async function POST(req: Request) {
     );
   }
 
+  const prepared =
+    lang.id === "cpp" ? prepareCpp(code) : lang.id === "c" ? prepareC(code) : { source: code, wrapped: false };
   const payload: Record<string, unknown> = {
     compiler: lang.compiler,
-    code: lang.id === "java" ? JAVA_STUB : code,
+    code: lang.id === "java" ? JAVA_STUB : prepared.source,
     stdin,
     save: false,
   };
@@ -112,6 +115,10 @@ export async function POST(req: Request) {
       ms: Date.now() - started,
       truncated: stdout.truncated || stderr.truncated,
       file: lang.file,
+      note:
+        prepared.wrapped && ok
+          ? "Compiled. This snippet has no main, so nothing was printed. Add a main function when you want it to run and show a result."
+          : undefined,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
