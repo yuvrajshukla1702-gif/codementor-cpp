@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   }
 
   const prepared =
-    lang.id === "cpp" ? prepareCpp(code) : lang.id === "c" ? prepareC(code) : { source: code, wrapped: false };
+    lang.id === "cpp" ? prepareCpp(code, stdin) : lang.id === "c" ? prepareC(code) : { source: code, wrapped: false };
   const payload: Record<string, unknown> = {
     compiler: lang.compiler,
     code: lang.id === "java" ? JAVA_STUB : prepared.source,
@@ -116,8 +116,8 @@ export async function POST(req: Request) {
       truncated: stdout.truncated || stderr.truncated,
       file: lang.file,
       note:
-        prepared.wrapped && ok
-          ? "Compiled. This snippet has no main, so nothing was printed. Add a main function when you want it to run and show a result."
+        ok && "called" in prepared && prepared.called
+          ? `Ran ${prepared.called}. Put your own input on the left, one line per argument, and run again.`
           : undefined,
     },
     { headers: { "Cache-Control": "no-store" } },
