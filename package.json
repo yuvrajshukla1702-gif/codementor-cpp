@@ -15,6 +15,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@prisma/client": "^6.16.2",
     "dotenv": "^18.0.1",
+    "JSCPP": "^2.0.9",
     "monaco-editor": "^0.56.0",
     "next": "15.5.25",
     "react": "19.1.0",

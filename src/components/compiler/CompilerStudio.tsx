@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { EditorDiagnostic } from "@/components/CodeEditor";
 import { Icon } from "@/components/ui/icons";
+import { runInstant, warmInstantRunners } from "@/lib/compiler/instant";
 import { COMPILER_LANGS, type CompilerLangId } from "@/lib/compiler/languages";
 
 const CodeEditor = dynamic(() => import("@/components/CodeEditor").then((m) => m.CodeEditor), {
@@ -69,6 +70,12 @@ function diagnosticsFrom(stderr: string): EditorDiagnostic[] {
   )) {
     push(Number(m[1]), Number(m[2] || 1), m[3].trim());
   }
+  for (const m of stderr.matchAll(/(?:^|\n)(\d+):(\d+)\s+([^\n]+)/g)) {
+    push(Number(m[1]), Number(m[2]), m[3].trim());
+  }
+  for (const m of stderr.matchAll(/on line (\d+)/g)) {
+    push(Number(m[1]), 1, m[0]);
+  }
   for (const m of stderr.matchAll(/File "[^"]+", line (\d+)/g)) {
     const line = Number(m[1]);
     const next = stderr.slice(m.index ?? 0).split("\n").find((row) => /Error|Exception/.test(row));
@@ -89,6 +96,10 @@ export function CompilerStudio() {
     localStorage.setItem(STORE, JSON.stringify(draft));
   }, [draft]);
 
+  useEffect(() => {
+    warmInstantRunners();
+  }, []);
+
   const setCode = (value: string) => {
     setDraft((d) => ({ ...d, code: { ...d.code, [d.lang]: value } }));
   };
@@ -106,6 +117,17 @@ export function CompilerStudio() {
 
   const run = useCallback(async () => {
     if (running) return;
+    const started = performance.now();
+    let local: Awaited<ReturnType<typeof runInstant>> = null;
+    try {
+      local = await runInstant(draft.lang, code, draft.stdin);
+    } catch {
+      local = null;
+    }
+    if (local) {
+      setResult({ ...local, ms: Math.max(1, Math.round(performance.now() - started)) });
+      return;
+    }
     setRunning(true);
     setResult(null);
     try {
