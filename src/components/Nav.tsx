@@ -15,6 +15,7 @@ const links: { href: string; label: string; match: (p: string) => boolean; spark
     match: (p) => p === "/learn" || p.startsWith("/learn/dsa") || p.startsWith("/learn/classroom"),
   },
   { href: "/learn/cpp", label: "C++", match: (p) => p.startsWith("/learn/cpp") },
+  { href: "/compiler", label: "Compiler", match: (p) => p.startsWith("/compiler") },
   { href: "/tcs", label: "TCS", match: (p) => p.startsWith("/tcs") },
   { href: "/core", label: "Core CS", match: (p) => p.startsWith("/core") },
   { href: "/hr", label: "HR", match: (p) => p.startsWith("/hr") },

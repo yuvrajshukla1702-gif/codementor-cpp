@@ -32,6 +32,7 @@ const PAGES: { href: string; title: string; sub: string; icon: IconName }[] = [
   { href: "/practice", title: "All problems", sub: "Browse & filter", icon: "list" },
   { href: "/learn", title: "Learn DSA", sub: "Topic by topic", icon: "book" },
   { href: "/learn/cpp", title: "C++ track", sub: "Language fundamentals", icon: "code" },
+  { href: "/compiler", title: "Compiler", sub: "Write and run C, C++, Python, Java, JavaScript", icon: "terminal" },
   { href: "/tcs", title: "TCS prep", sub: "NQT & interviews", icon: "target" },
   { href: "/core", title: "Core CS", sub: "OS, DBMS, networks", icon: "cpu" },
   { href: "/hr", title: "HR round", sub: "Answers that land", icon: "mic" },

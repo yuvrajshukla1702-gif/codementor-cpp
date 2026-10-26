@@ -29,6 +29,13 @@ export default function HomePage() {
     },
     { href: "/practice", icon: "list", label: "All problems", hint: `${total} problems, searchable, with a local judge.` },
     {
+      href: "/compiler",
+      icon: "terminal",
+      label: "Online compiler",
+      hint: "Write C, C++, Python, Java, or JavaScript and run it, with input and the real output beside the editor.",
+      wide: true,
+    },
+    {
       href: "/practice/two-sum",
       icon: "play",
       label: "Start with Two Sum",

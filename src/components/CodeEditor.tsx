@@ -75,6 +75,7 @@ export function CodeEditor({
   value,
   onChange,
   height = "420px",
+  language = "cpp",
   diagnostics = [],
   focusLine,
   onRun,
@@ -83,6 +84,7 @@ export function CodeEditor({
   value: string;
   onChange: (v: string) => void;
   height?: string;
+  language?: string;
   diagnostics?: EditorDiagnostic[];
   focusLine?: number | null;
   /** Ctrl/Cmd + Enter */
@@ -138,7 +140,7 @@ export function CodeEditor({
     <div className="h-full overflow-hidden bg-[var(--surface)]">
       <Editor
         height={height}
-        defaultLanguage="cpp"
+        language={language}
         theme="cm-dark"
         value={value}
         beforeMount={defineTheme}
