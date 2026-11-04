@@ -108,21 +108,36 @@ Return the corrected JSON now.`;
 
 /* ----------------------------------------- narration ----------------------------------------- */
 
-const NARRATE_BASE = `You are a friendly teacher recording a short whiteboard video about a coding problem. You write exactly what you will say out loud, line by line, to one student. Spoken style: short sentences, warm, no markdown, no code symbols (say "open round bracket", not "("), numbers as digits, never mention "TR", "trace" or "snapshot".
+const NARRATE_BASE = `You are recording a short teaching reel for one student. The picture changes on every line, so each line is ONE punch, then you stop. Sound like a sharp interview teacher, not a textbook and not a hype channel.
 
-You receive the problem, the approach and a list of REAL execution snapshots (events) captured by running the program on the sample input. Each event has a note (what the code is doing), the code line and the real variable values in "state".
+Shape of the lesson, in this order:
+1. The interviewer just asked the question. Say the sample out loud as real numbers.
+2. The obvious answer is correct. Then reject it in the next breath, because it is too slow for the interview.
+3. Name the trick like a title on the board. One picture. Why a beginner can trust it.
+4. Walk the sample. Every line is one move and the real number from "state".
+5. Say the answer as if you just wrote it. Then the cost. Then the one mistake people make.
 
-Return ONE JSON object with these keys, all plain strings except events:
-- hook: 2 or 3 short sentences. What is asked, then the sample input said out loud, then what a correct answer looks like.
-- brute: 1-2 sentences on the naive way and why it is slow. "" if the input has no brute force.
-- idea: 3 short sentences. Name the trick in plain words, say why a beginner should trust it, and tie it to the sample. Define the data structure the first time you say its name.
-- events: an array with EXACTLY one line per event, in order (at most 26 words each). Say what just happened and why, reading the actual numbers from "state". NEVER invent a value that is not in "state" and never contradict it. Vary your phrasing. The last line states the final outcome.
-- result: 1-2 sentences. The final answer for the sample input (the "output" field).
-- complexity: 1-2 sentences. Time and space, and why.
-- pitfall: 1 sentence on the most common mistake. "" if none.`;
+Spoken style: short sentences. Confident. No markdown, no emojis, no code symbols (say "open round bracket", not "("). Numbers stay digits. Never say "TR", "trace", "snapshot", "as an AI", or "let us delve".
 
-export const NARRATE_ENGLISH = `${NARRATE_BASE}\n\nLanguage: clear, simple English for an Indian student.`;
-export const NARRATE_HINGLISH = `${NARRATE_BASE}\n\nLanguage: natural spoken Hinglish in ROMAN script (never Devanagari): Hindi grammar with the usual English technical words, e.g. "Ab hum stack mein ek open bracket push karte hain." Keep technical terms in English (array, stack, index, loop, pointer, time complexity).`;
+You receive the problem, the approach, and REAL execution snapshots. Each event has a note, the code line, and variable values in "state".
+
+Return ONE JSON object:
+- hook: 2 or 3 short sentences. The question, the sample said out loud, what a correct answer looks like.
+- brute: 2 short sentences. First: the simple way works. Second: why the interview will not accept it. "" if there is no brute force.
+- idea: 2 or 3 short sentences. Name the trick. One everyday picture. Tie it to this sample. Define the data structure the first time you say its name.
+- events: an array with EXACTLY one line per event, in order, at most 22 words. What just happened, the actual number from "state", and why. NEVER invent a value that is not in "state". Vary the opening word. The last line is the outcome.
+- result: 1 sentence. The final answer for this sample, from the "output" field.
+- complexity: 1 sentence. Time and space, in plain words.
+- pitfall: 1 sentence. The mistake, then the fix. "" if none.`;
+
+export const NARRATE_ENGLISH = `${NARRATE_BASE}
+
+Language: simple Indian English. Same energy as a good Hindi teacher who switched to English. Example shape, not words to copy: "The interviewer asks for two indexes that add to 9. Trying every pair is correct. It is also too slow. The trick is a diary. Have we already seen the partner?"`;
+
+export const NARRATE_HINGLISH = `${NARRATE_BASE}
+
+Language: spoken Hinglish in ROMAN script only, never Devanagari. Hindi sentence, English for the technical word. Example shape, not words to copy: "Interviewer ne poocha, kaunse do index ka sum 9 hai. Har pair try karo, query toh sahi hai. Par interview mein yeh nahi chalega. Trick ek diary hai. Partner pehle aa chuka hai kya?"
+Keep these in English: array, stack, index, loop, pointer, map, window, time, space.`;
 
 export function narrateUser(a: {
   hook: Hook;
@@ -152,7 +167,7 @@ export function narrateUser(a: {
   return `Write the narration. "events" must have exactly ${a.events.length} lines.\nINPUT:\n${JSON.stringify(data)}`;
 }
 
-export const TRANSLATE_SYSTEM = `You translate spoken teaching lines into natural spoken Hindi in Devanagari script, for text-to-speech. Keep digits as digits. Transliterate technical words into Devanagari (स्टैक, ऐरे, इंडेक्स, लूप, पॉइंटर). Keep each line short and conversational. Return ONE JSON object: {"out": [...]} with exactly the same number of items, in the same order.`;
+export const TRANSLATE_SYSTEM = `You rewrite spoken teaching lines into natural spoken Hindi in Devanagari, for a voice-over. Same meaning, same punch, not a word-for-word translation. Short sentences. Confident teacher, not a news reader. Keep digits as digits. Write technical words in Devanagari the way a teacher says them (ऐरे, इंडेक्स, स्टैक, लूप, पॉइंटर, मैप, विंडो). A slow idea that still works should sound like: "तरीका सही है। इंटरव्यू में यह धीमा पड़ जाएगा।" Return ONE JSON object: {"out": [...]} with exactly the same number of items, in the same order.`;
 
 export function translateUser(lines: string[]): string {
   return `Translate these ${lines.length} lines:\n${JSON.stringify(lines)}`;

@@ -4,6 +4,9 @@ export type ShowKind = "array-scan" | "two-pointers" | "sliding-window" | "hash-
 
 export type ShowGesture = "point" | "think" | "write" | "celebrate" | "explain";
 
+/** One teaching beat, drawn like a short lesson card rather than a caption. */
+export type ShowScene = "ask" | "deal" | "reject" | "idea" | "trick" | "win" | "warn" | "cost";
+
 export type ShowStep = {
   /** Teacher line — Hinglish */
   say: string;
@@ -29,6 +32,8 @@ export type ShowStep = {
   board?: string;
   /** Course chapter label */
   chapter?: string;
+  /** Big animated beat. Chapters also imply one when this is left empty. */
+  scene?: ShowScene;
   /** 2-D table (dp grid, matrix) — used by the AI agent's dry runs */
   grid?: Array<Array<string | number>>;
   /** Highlighted [row, col] inside `grid` */

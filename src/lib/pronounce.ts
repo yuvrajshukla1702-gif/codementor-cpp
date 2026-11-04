@@ -318,14 +318,14 @@ function flowSpeech(raw: string) {
 export function prepareSpeech(raw: string, lang: string) {
   const text = tidy(raw);
   if (lang === "english") {
-    return { text: flowSpeech(text), voice: "en-IN-NeerjaNeural", rate: "+8%" };
+    return { text: flowSpeech(text), voice: "en-IN-PrabhatNeural", rate: "+4%" };
   }
   if (lang === "hindi") {
     const spoken = /[\u0900-\u097F]/.test(text) ? text : hinglishSpeak(text);
-    return { text: flowSpeech(spoken), voice: "hi-IN-SwaraNeural", rate: "+5%" };
+    return { text: flowSpeech(spoken), voice: "hi-IN-MadhurNeural", rate: "+2%" };
   }
-  // Hinglish = Indian male teacher reading natural roman Hinglish
-  return { text: naturalHinglish(text), voice: "en-IN-PrabhatNeural", rate: "+10%" };
+  // Hinglish = the same Indian teacher, Hindi grammar, English technical words
+  return { text: naturalHinglish(text), voice: "en-IN-PrabhatNeural", rate: "+4%" };
 }
 
 export function ratePercent(speed: number) {
@@ -334,7 +334,7 @@ export function ratePercent(speed: number) {
   if (speed >= 1.8) return "+28%";
   if (speed >= 1.5) return "+20%";
   if (speed >= 1.25) return "+14%";
-  if (speed >= 1) return "+10%";
+  if (speed >= 1) return "+4%";
   return "+2%";
 }
 

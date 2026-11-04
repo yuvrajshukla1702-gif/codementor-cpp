@@ -298,6 +298,38 @@ textarea.input { height: auto; padding: 0.6rem 0.8rem; }
 .cm-chalk { animation: cm-chalk 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .cm-cell-lift { animation: cm-cell-lift 0.55s ease-out both; }
 
+@keyframes cm-flow {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cm-title {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cm-stamp {
+  0% { opacity: 0; transform: scale(1.4) rotate(-8deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-6deg); }
+}
+@keyframes cm-strike {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.cm-flow { animation: cm-flow 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cm-title { animation: cm-title 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cm-stamp { animation: cm-stamp 0.42s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cm-struck { position: relative; display: inline-block; }
+.cm-struck::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 55%;
+  height: 2px;
+  background: #ff5a6a;
+  transform-origin: left center;
+  animation: cm-strike 0.35s 0.28s ease-out both;
+}
+
 /* Engagement */
 @keyframes cm-flicker {
   0%, 100% { transform: scale(1) rotate(-2deg); }

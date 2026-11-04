@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { KaraokeLine, TeacherPresence } from "@/components/course/TeacherPresence";
 import { Icon } from "@/components/ui/icons";
-import type { TeacherShowScript } from "@/lib/teacher-shows";
+import type { ShowScene, TeacherShowScript } from "@/lib/teacher-shows";
 import { estimateSecs, fetchSpeechCached, prefetchSpeech, type VoiceLang } from "@/lib/speech-cache";
 
 function lineOf(step: TeacherShowScript["steps"][number], lang: VoiceLang) {
@@ -23,6 +23,73 @@ function fmt(sec: number) {
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
+const SCENE_STAMP: Record<ShowScene, string> = {
+  ask: "Question",
+  deal: "Remember",
+  reject: "Too slow",
+  idea: "The idea",
+  trick: "The trick",
+  win: "Answer",
+  warn: "Careful",
+  cost: "Cost",
+};
+
+function sceneOf(chapter?: string, explicit?: ShowScene): ShowScene | null {
+  if (explicit) return explicit;
+  const c = (chapter || "").toLowerCase();
+  if (/hook/.test(c)) return "ask";
+  if (/contract/.test(c)) return "deal";
+  if (/wrong|brute/.test(c)) return "reject";
+  if (/trick/.test(c)) return "trick";
+  if (/idea/.test(c)) return "idea";
+  if (/wrap|result|answer|done/.test(c)) return "win";
+  if (/watch|pitfall|mistake/.test(c)) return "warn";
+  if (/complex/.test(c)) return "cost";
+  return null;
+}
+
+function StoryHead({ scene, title, note }: { scene: ShowScene; title: string; note: string }) {
+  const tone =
+    scene === "reject"
+      ? "border-[#ff5a6a]/40 text-[#ff8b96]"
+      : scene === "win" || scene === "trick"
+        ? "border-[#c8f65d]/40 text-[#d6ff8a]"
+        : scene === "warn"
+          ? "border-[#ffd166]/40 text-[#ffe3a3]"
+          : "border-white/15 text-white/80";
+  return (
+    <div className={`relative mb-3 w-full max-w-3xl overflow-hidden rounded-2xl border bg-[#0c1219]/90 px-4 py-3 sm:px-5 sm:py-4 ${tone}`}>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="cm-flow text-[10px] font-semibold uppercase tracking-[0.16em]">{SCENE_STAMP[scene]}</span>
+        <span
+          className={`cm-stamp rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${tone}`}
+        >
+          {scene === "reject" ? "Not this" : scene === "win" ? "Got it" : scene === "trick" ? "Use this" : "Watch"}
+        </span>
+      </div>
+      <p className="cm-title font-display text-xl leading-tight text-white sm:text-2xl">{title}</p>
+      {note && (
+        <p className={`cm-flow mt-2 text-sm ${scene === "reject" ? "cm-struck text-white/70" : "text-white/70"}`} style={{ animationDelay: "160ms" }}>
+          {note}
+        </p>
+      )}
+      {(scene === "idea" || scene === "trick") && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+          <span className="cm-flow rounded-full bg-white/10 px-2.5 py-1 text-white/80">Problem</span>
+          <span className="text-white/30">→</span>
+          <span className="cm-flow rounded-full bg-[#c8f65d]/15 px-2.5 py-1 text-[#d6ff8a]" style={{ animationDelay: "140ms" }}>
+            Trick
+          </span>
+          <span className="text-white/30">→</span>
+          <span className="cm-flow rounded-full bg-white/10 px-2.5 py-1 text-white/80" style={{ animationDelay: "280ms" }}>
+            Answer
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const VOICES: { id: VoiceLang; label: string }[] = [
@@ -488,6 +555,10 @@ export function TeacherShow({
   const spanLabel = script.kind === "sliding-window" ? "window" : "range";
   const chapter = chapterLabels[i] || step?.chapter || `Beat ${i + 1}`;
   const boardTitle = step?.board || script.subtitle;
+  const scene = sceneOf(step?.chapter, step?.scene);
+  const storyNote = Object.entries(step?.stats || {})
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("  ·  ");
   const gesture = step?.gesture || (playing ? "explain" : "think");
   const focusIdx = step?.hi?.[0] ?? Object.values(step?.pointers || {})[0] ?? -1;
 
@@ -535,6 +606,9 @@ export function TeacherShow({
               className="flex w-full flex-col items-center"
               style={fit < 1 ? { transform: `scale(${fit})` } : undefined}
              >
+              {scene ? (
+                <StoryHead scene={scene} title={boardTitle} note={storyNote} />
+              ) : (
               <div
                 className={`w-full max-w-3xl rounded-lg border border-white/10 bg-[#0c1219]/90 px-3 shadow-inner sm:px-4 ${
                   compact ? "mb-2 py-1.5" : "mb-3 py-2 sm:py-3"
@@ -543,6 +617,7 @@ export function TeacherShow({
                 <p className="mb-0.5 text-[10px] uppercase tracking-[0.14em] text-white/40">Chalkboard</p>
                 <p className="font-display text-base text-[var(--accent)] sm:text-lg">{boardTitle}</p>
               </div>
+              )}
 
               {needValue && (
                 <div className="cm-pulse mb-3 rounded-full border border-[#ffd166]/50 bg-[#ffd166]/15 px-3 py-1 text-xs font-semibold text-[#ffe3a3]">
@@ -717,7 +792,7 @@ export function TeacherShow({
                       </div>
                     </div>
                   )}
-                  {step.stats && !step.map && !step.lists && (
+                  {step.stats && !step.map && !step.lists && !scene && (
                     <div className="mb-1 flex flex-wrap justify-center gap-2">
                       {Object.entries(step.stats).map(([k, v]) => (
                         <span key={k} className="rounded-full border border-white/10 bg-black/50 px-3 py-1 font-mono text-xs text-white/90">
