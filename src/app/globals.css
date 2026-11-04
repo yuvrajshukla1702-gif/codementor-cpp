@@ -314,20 +314,26 @@ textarea.input { height: auto; padding: 0.6rem 0.8rem; }
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
+@keyframes cm-slam {
+  0% { opacity: 0; transform: scale(0.92) translateY(16px); }
+  100% { opacity: 1; transform: none; }
+}
 .cm-flow { animation: cm-flow 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .cm-title { animation: cm-title 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cm-slam { animation: cm-slam 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .cm-stamp { animation: cm-stamp 0.42s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.cm-struck { position: relative; display: inline-block; }
+.cm-struck { position: relative; display: inline; }
 .cm-struck::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 55%;
-  height: 2px;
+  left: -2%;
+  right: -2%;
+  top: 54%;
+  height: 4px;
+  border-radius: 999px;
   background: #ff5a6a;
   transform-origin: left center;
-  animation: cm-strike 0.35s 0.28s ease-out both;
+  animation: cm-strike 0.42s 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Engagement */

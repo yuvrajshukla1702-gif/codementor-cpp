@@ -44,19 +44,19 @@ export function buildScript(a: {
   };
 
   add(
-    { chapter: "Hook", board: hook.title, gesture: "explain", ...stageOf(first), stats: hook.topics.length ? { topics: hook.topics.join(" · ") } : undefined },
+    { chapter: "Hook", scene: "ask", board: hook.title, gesture: "explain" },
     { en: pick(en?.hook, hook.restated), hing: hing?.hook },
   );
 
   if (explain.brute) {
     add(
-      { chapter: "Brute force", board: `Brute force · ${explain.brute.time}`, gesture: "think", ...stageOf(first), stats: { brute: explain.brute.idea.slice(0, 70), time: explain.brute.time } },
+      { chapter: "Brute force", scene: "reject", board: explain.brute.idea.replace(/\s+/g, " ").slice(0, 90), gesture: "think" },
       { en: pick(en?.brute, `The simple way: ${explain.brute.idea} It takes ${explain.brute.time}.`), hing: hing?.brute },
     );
   }
 
   add(
-    { chapter: "The idea", board: explain.approach.name, gesture: "write", ...stageOf(first), stats: { time: explain.approach.time, space: explain.approach.space } },
+    { chapter: "The trick", scene: "trick", board: explain.approach.name, gesture: "write", ...stageOf(first) },
     { en: pick(en?.idea, explain.approach.why, explain.intuition[0]), hing: hing?.idea },
   );
 
@@ -66,25 +66,26 @@ export function buildScript(a: {
     steps.push({
       ...f.step,
       chapter: `Step ${i + 1}`,
+      scene: "walk",
       say: pick(hingLine, enLine),
       sayEn: enLine,
     });
   });
 
   add(
-    { chapter: "Result", board: "The answer", gesture: "celebrate", ...stageOf(last, true), stats: { output: a.output.trim().slice(0, 40) || "—" } },
+    { chapter: "Result", scene: "win", board: a.output.trim().slice(0, 48) || "Answer", gesture: "celebrate", ...stageOf(last, true) },
     { en: pick(en?.result, `For this input the program prints ${a.output.trim().slice(0, 60)}.`), hing: hing?.result },
   );
 
   add(
-    { chapter: "Complexity", board: `Time ${explain.approach.time} · Space ${explain.approach.space}`, gesture: "explain", stats: { time: explain.approach.time, space: explain.approach.space } },
+    { chapter: "Complexity", scene: "cost", board: `${explain.approach.time}  ·  ${explain.approach.space}`, gesture: "explain" },
     { en: pick(en?.complexity, `Time is ${explain.approach.time} and space is ${explain.approach.space}.`), hing: hing?.complexity },
   );
 
   const pit = pick(en?.pitfall, explain.pitfalls[0]);
   if (pit) {
     add(
-      { chapter: "Watch out", board: "Common mistake", gesture: "point", stats: { watch_out: pit.slice(0, 80) } },
+      { chapter: "Watch out", scene: "warn", board: pit.replace(/\s+/g, " ").slice(0, 90), gesture: "point" },
       { en: pit, hing: hing?.pitfall },
     );
   }

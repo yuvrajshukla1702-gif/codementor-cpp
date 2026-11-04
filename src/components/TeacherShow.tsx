@@ -26,11 +26,12 @@ function fmt(sec: number) {
 }
 
 const SCENE_STAMP: Record<ShowScene, string> = {
-  ask: "Question",
+  ask: "Interviewer",
   deal: "Remember",
   reject: "Too slow",
   idea: "The idea",
   trick: "The trick",
+  walk: "Watch",
   win: "Answer",
   warn: "Careful",
   cost: "Cost",
@@ -44,6 +45,7 @@ function sceneOf(chapter?: string, explicit?: ShowScene): ShowScene | null {
   if (/wrong|brute/.test(c)) return "reject";
   if (/trick/.test(c)) return "trick";
   if (/idea/.test(c)) return "idea";
+  if (/^step\b|dry|walk/.test(c)) return "walk";
   if (/wrap|result|answer|done/.test(c)) return "win";
   if (/watch|pitfall|mistake/.test(c)) return "warn";
   if (/complex/.test(c)) return "cost";
@@ -51,39 +53,48 @@ function sceneOf(chapter?: string, explicit?: ShowScene): ShowScene | null {
 }
 
 function StoryHead({ scene, title, note }: { scene: ShowScene; title: string; note: string }) {
+  const hero = scene === "ask" || scene === "reject" || scene === "trick" || scene === "win";
   const tone =
     scene === "reject"
-      ? "border-[#ff5a6a]/40 text-[#ff8b96]"
+      ? "border-[#ff5a6a]/50 text-[#ff8b96]"
       : scene === "win" || scene === "trick"
-        ? "border-[#c8f65d]/40 text-[#d6ff8a]"
+        ? "border-[#c8f65d]/45 text-[#d6ff8a]"
         : scene === "warn"
-          ? "border-[#ffd166]/40 text-[#ffe3a3]"
+          ? "border-[#ffd166]/45 text-[#ffe3a3]"
           : "border-white/15 text-white/80";
+  const stamp =
+    scene === "reject" ? "Too slow" : scene === "win" ? "Answer" : scene === "trick" ? "Use this" : scene === "ask" ? "Question" : "Watch";
   return (
-    <div className={`relative mb-3 w-full max-w-3xl overflow-hidden rounded-2xl border bg-[#0c1219]/90 px-4 py-3 sm:px-5 sm:py-4 ${tone}`}>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="cm-flow text-[10px] font-semibold uppercase tracking-[0.16em]">{SCENE_STAMP[scene]}</span>
-        <span
-          className={`cm-stamp rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${tone}`}
-        >
-          {scene === "reject" ? "Not this" : scene === "win" ? "Got it" : scene === "trick" ? "Use this" : "Watch"}
-        </span>
+    <div className={`relative mb-3 w-full overflow-hidden rounded-2xl border bg-[#0c1219]/90 px-4 py-4 sm:px-6 sm:py-5 ${hero ? "max-w-4xl" : "max-w-3xl"} ${tone}`}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="cm-flow text-[11px] font-semibold uppercase tracking-[0.18em]">{SCENE_STAMP[scene]}</span>
+        <span className={`cm-stamp rounded-md border px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide ${tone}`}>{stamp}</span>
       </div>
-      <p className="cm-title font-display text-xl leading-tight text-white sm:text-2xl">{title}</p>
-      {note && (
-        <p className={`cm-flow mt-2 text-sm ${scene === "reject" ? "cm-struck text-white/70" : "text-white/70"}`} style={{ animationDelay: "160ms" }}>
+      <p
+        className={`cm-slam font-display leading-[1.05] text-white ${
+          hero ? "text-3xl sm:text-5xl" : "text-xl sm:text-2xl"
+        } ${scene === "reject" ? "cm-struck text-white/80" : ""}`}
+      >
+        {title}
+      </p>
+      {note && scene !== "walk" && (
+        <p className="cm-flow mt-3 max-w-2xl text-sm text-white/70 sm:text-base" style={{ animationDelay: "180ms" }}>
           {note}
         </p>
       )}
       {(scene === "idea" || scene === "trick") && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-          <span className="cm-flow rounded-full bg-white/10 px-2.5 py-1 text-white/80">Problem</span>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] font-semibold">
+          <span className="cm-flow rounded-full bg-white/10 px-3 py-1 text-white/80">Problem</span>
           <span className="text-white/30">→</span>
-          <span className="cm-flow rounded-full bg-[#c8f65d]/15 px-2.5 py-1 text-[#d6ff8a]" style={{ animationDelay: "140ms" }}>
+          <span className="cm-flow rounded-full bg-[#ff5a6a]/15 px-3 py-1 text-[#ff8b96] line-through decoration-[#ff5a6a]" style={{ animationDelay: "120ms" }}>
+            Too slow
+          </span>
+          <span className="text-white/30">→</span>
+          <span className="cm-flow rounded-full bg-[#c8f65d]/15 px-3 py-1 text-[#d6ff8a]" style={{ animationDelay: "240ms" }}>
             Trick
           </span>
           <span className="text-white/30">→</span>
-          <span className="cm-flow rounded-full bg-white/10 px-2.5 py-1 text-white/80" style={{ animationDelay: "280ms" }}>
+          <span className="cm-flow rounded-full bg-white/10 px-3 py-1 text-white/80" style={{ animationDelay: "360ms" }}>
             Answer
           </span>
         </div>
@@ -453,7 +464,7 @@ export function TeacherShow({
         setPlaying(false);
         return;
       }
-      await new Promise((r) => window.setTimeout(r, 40));
+      await new Promise((r) => window.setTimeout(r, 320));
       if (token !== gen.current || !playRef.current) return;
       cur += 1;
     }
@@ -556,6 +567,7 @@ export function TeacherShow({
   const chapter = chapterLabels[i] || step?.chapter || `Beat ${i + 1}`;
   const boardTitle = step?.board || script.subtitle;
   const scene = sceneOf(step?.chapter, step?.scene);
+  const titleOnly = scene === "ask" || scene === "reject" || scene === "win" || scene === "cost" || scene === "warn";
   const storyNote = Object.entries(step?.stats || {})
     .map(([k, v]) => `${k}: ${v}`)
     .join("  ·  ");
@@ -592,13 +604,15 @@ export function TeacherShow({
           </div>
 
           <div
-            className={`absolute inset-0 grid grid-cols-[72px_minmax(0,1fr)] gap-2 px-3 pt-10 sm:grid-cols-[110px_minmax(0,1fr)] sm:gap-4 sm:px-5 sm:pt-12 ${
-              fullscreen ? "pb-28 sm:pb-32" : "pb-24"
-            }`}
+            className={`absolute inset-0 grid gap-2 px-3 pt-10 sm:gap-4 sm:px-5 sm:pt-12 ${
+              titleOnly ? "grid-cols-1" : "grid-cols-[72px_minmax(0,1fr)] sm:grid-cols-[110px_minmax(0,1fr)]"
+            } ${fullscreen ? "pb-28 sm:pb-32" : "pb-24"}`}
           >
+            {!titleOnly && (
             <div className="flex items-end justify-center pb-2 sm:items-center sm:pb-0">
               <TeacherPresence speaking={playing && voiceOn && !loadingVoice} gesture={gesture} compact={!fullscreen && compact} />
             </div>
+            )}
 
             <div key={i} ref={boardRef} className="cm-chalk relative flex min-h-0 items-center justify-center">
              <div
@@ -619,13 +633,13 @@ export function TeacherShow({
               </div>
               )}
 
-              {needValue && (
+              {needValue && !titleOnly && (
                 <div className="cm-pulse mb-3 rounded-full border border-[#ffd166]/50 bg-[#ffd166]/15 px-3 py-1 text-xs font-semibold text-[#ffe3a3]">
                   Looking for {needValue}
                 </div>
               )}
 
-              {cells.length > 0 && (
+              {!titleOnly && cells.length > 0 && (
                 <div className={`relative w-full max-w-3xl ${step.window ? "pt-6" : ""} ${compact ? "mb-2" : "mb-4"}`}>
                   {step.window && (
                     <svg
@@ -715,7 +729,7 @@ export function TeacherShow({
                 </div>
               )}
 
-              {step.grid && step.grid.length > 0 && (
+              {!titleOnly && step.grid && step.grid.length > 0 && (
                 <div className={`mb-2 max-w-full overflow-x-auto rounded-xl border border-white/10 bg-black/40 p-2 ${compact ? "" : "sm:p-3"}`}>
                   <table className="mx-auto border-separate border-spacing-1 font-mono text-[11px]">
                     <tbody>
@@ -744,7 +758,7 @@ export function TeacherShow({
                 </div>
               )}
 
-              {(step.map || step.stats || step.lists) && (
+              {!titleOnly && (step.map || step.stats || step.lists) && (
                 <div className={`mb-2 grid w-full max-w-3xl gap-2 ${step.lists && (step.map || step.stats) ? "sm:grid-cols-2" : ""}`}>
                   {step.lists && Object.keys(step.lists).length > 0 && (
                     <div className="rounded-xl border border-white/10 bg-black/50 p-3">
@@ -818,7 +832,7 @@ export function TeacherShow({
                 </div>
               )}
 
-              {step.codeLine && (
+              {!titleOnly && step.codeLine && (
                 <pre className="cm-fade mb-1 max-w-3xl overflow-x-auto rounded-xl border border-[#c8f65d]/25 bg-[#c8f65d]/[0.07] px-3 py-2 font-mono text-[12px] text-[#e8ffb0]">
                   {step.codeLine}
                 </pre>

@@ -61,7 +61,7 @@ export async function synthesize(text: string, voice: string, rate = "+0%"): Pro
               synthesis: {
                 audio: {
                   metadataoptions: { sentenceBoundaryEnabled: "false", wordBoundaryEnabled: "false" },
-                  outputFormat: "audio-24khz-48kbitrate-mono-mp3",
+                  outputFormat: "audio-24khz-96kbitrate-mono-mp3",
                 },
               },
             },

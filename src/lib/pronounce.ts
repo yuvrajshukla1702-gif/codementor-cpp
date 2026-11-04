@@ -282,60 +282,37 @@ export function hinglishSpeak(raw: string) {
 
 export function naturalHinglish(raw: string) {
   // Keep roman Hinglish. Indian English neural voices sound far more natural
-  // on this than forced Devanagari word swaps.
-  return flowSpeech(
-    tidy(raw)
-      .replace(/\bchahiye\b/gi, "chaahiye")
-      .replace(/\bkyunki\b/gi, "kyoon ki")
-      .replace(/\bkya\b/gi, "kyaa")
-      .replace(/\bnahi\b/gi, "nahee")
-      .replace(/\bdhyan\b/gi, "dhyaan")
-      .replace(/\bpehle\b/gi, "pehley")
-  );
-}
-
-/** Turn choppy sentence stops into lighter commas so TTS does not stall. */
-function flowSpeech(raw: string) {
-  const parts = raw
-    .replace(/।/g, ".")
-    .split(/(?<=[.!?])\s+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  if (parts.length <= 1) return raw.trim();
-  const body = parts
-    .map((p, idx) => {
-      const core = p.replace(/[.!?]+$/g, "").trim();
-      if (!core) return "";
-      // Keep a real stop only on the last clause
-      if (idx === parts.length - 1) return `${core}.`;
-      return `${core},`;
-    })
-    .filter(Boolean)
-    .join(" ");
-  return body.replace(/\s+/g, " ").trim();
+  // on this than forced Devanagari word swaps. Leave the full stops so the voice can breathe.
+  return tidy(raw)
+    .replace(/\bchahiye\b/gi, "chaahiye")
+    .replace(/\bkyunki\b/gi, "kyoon ki")
+    .replace(/\bkya\b/gi, "kyaa")
+    .replace(/\bnahi\b/gi, "nahee")
+    .replace(/\bdhyan\b/gi, "dhyaan")
+    .replace(/\bpehle\b/gi, "pehley");
 }
 
 export function prepareSpeech(raw: string, lang: string) {
   const text = tidy(raw);
   if (lang === "english") {
-    return { text: flowSpeech(text), voice: "en-IN-PrabhatNeural", rate: "+4%" };
+    return { text, voice: "en-IN-PrabhatNeural", rate: "-8%" };
   }
   if (lang === "hindi") {
     const spoken = /[\u0900-\u097F]/.test(text) ? text : hinglishSpeak(text);
-    return { text: flowSpeech(spoken), voice: "hi-IN-MadhurNeural", rate: "+2%" };
+    return { text: spoken, voice: "hi-IN-MadhurNeural", rate: "-6%" };
   }
   // Hinglish = the same Indian teacher, Hindi grammar, English technical words
-  return { text: naturalHinglish(text), voice: "en-IN-PrabhatNeural", rate: "+4%" };
+  return { text: naturalHinglish(text), voice: "en-IN-PrabhatNeural", rate: "-8%" };
 }
 
 export function ratePercent(speed: number) {
-  // Base voice is already slightly fast; speed multiplies from there.
-  if (speed >= 2) return "+35%";
-  if (speed >= 1.8) return "+28%";
-  if (speed >= 1.5) return "+20%";
-  if (speed >= 1.25) return "+14%";
-  if (speed >= 1) return "+4%";
-  return "+2%";
+  // Neural voices already talk a bit fast. 1x sits just under their default so it sounds spoken.
+  if (speed >= 2) return "+18%";
+  if (speed >= 1.8) return "+12%";
+  if (speed >= 1.5) return "+4%";
+  if (speed >= 1.25) return "-2%";
+  if (speed >= 1) return "-8%";
+  return "-16%";
 }
 
 export function escapeXml(text: string) {
@@ -347,13 +324,13 @@ export function escapeXml(text: string) {
     .replace(/'/g, "&apos;");
 }
 
-/** Keep SSML simple — Edge neural voices time out on heavy break markup. */
+/** One prosody block. Sentence stops stay in the text so the voice breathes. Break tags make Edge hang up. */
 export function toSsml(text: string, voice: string, rate: string) {
   const lang = voice.startsWith("hi-") ? "hi-IN" : "en-IN";
   const safe = escapeXml(text);
   return (
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${lang}">` +
-    `<voice name="${voice}"><prosody rate="${rate}">${safe}</prosody></voice>` +
+    `<voice name="${voice}"><prosody rate="${rate}" pitch="+1Hz">${safe}</prosody></voice>` +
     `</speak>`
   );
 }

@@ -5,7 +5,7 @@ export type ShowKind = "array-scan" | "two-pointers" | "sliding-window" | "hash-
 export type ShowGesture = "point" | "think" | "write" | "celebrate" | "explain";
 
 /** One teaching beat, drawn like a short lesson card rather than a caption. */
-export type ShowScene = "ask" | "deal" | "reject" | "idea" | "trick" | "win" | "warn" | "cost";
+export type ShowScene = "ask" | "deal" | "reject" | "idea" | "trick" | "walk" | "win" | "warn" | "cost";
 
 export type ShowStep = {
   /** Teacher line — Hinglish */
