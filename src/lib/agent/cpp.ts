@@ -101,10 +101,39 @@ export function cleanCpp(src: string): string {
 
 const TR_LINE = /^[ \t]*TR[ \t]*\(.*\)[ \t]*;[ \t]*$/;
 
-/** The code the student sees: every single-line TR(...); statement removed. */
+/** Drop // comments the model adds for teaching. Strings and character literals stay intact. */
+function stripComments(src: string): string {
+  const lines = src.split("\n").map((line) => {
+    let out = "";
+    let quote: '"' | "'" | null = null;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (quote) {
+        out += c;
+        if (c === "\\" && i + 1 < line.length) {
+          out += line[++i];
+          continue;
+        }
+        if (c === quote) quote = null;
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        quote = c;
+        out += c;
+        continue;
+      }
+      if (c === "/" && line[i + 1] === "/") break;
+      out += c;
+    }
+    return out.replace(/[ \t]+$/g, "");
+  });
+  return lines.filter((line) => line.trim() !== "").join("\n");
+}
+
+/** The code the student sees: trace calls and teaching comments removed. */
 export function stripTrace(src: string): { clean: string; leftover: boolean } {
   const kept = src.split("\n").filter((line) => !TR_LINE.test(line));
-  const clean = kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const clean = stripComments(kept.join("\n")).replace(/\n{3,}/g, "\n\n").trim();
   return { clean, leftover: /(^|[^A-Za-z0-9_])TR[ \t]*\(/.test(blankLiterals(clean)) };
 }
 

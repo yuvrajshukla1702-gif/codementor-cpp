@@ -36,13 +36,12 @@ OUTPUT: exactly one JSON object and nothing else. Write the keys in THIS order: 
 - code:
   - solution: C++14 for GCC 6: NO structured bindings, NO if constexpr, NO std::optional / std::gcd / std::string_view / std::variant, no C++17 library. Do NOT write #include or "using namespace std;" (they are added for you: <bits/stdc++.h> and using namespace std). No main() in solution.
     For problems use the LeetCode form: class Solution { public: ... }; with the usual signature. Correct for every input within typical constraints. Use the normal optimal idea (hash map, two pointers, stack, sliding window, dp) when that is the lesson.
-    Write it so a first-year student can read it out loud:
-    - One action per line. No nested ternaries, no macros, no bit tricks unless the question is about bits, and no one-line STL tricks.
+    Write it the way a strong model answers a coding question: the shortest correct solution, nothing extra. A typical easy function body is about 8 to 15 lines. Do not pad it.
+    - No comments. No blank line between ordinary statements. Teaching lives outside the code.
+    - Do not split a clear expression into temporary variables just to narrate it. A temporary is right when it is the algorithm (need, mid, top).
+    - No nested ternaries, no macros, no bit tricks unless the question is about bits.
     - Names a person would say: left, right, seen, best, count, stack. Use i for a loop index. Do not use mp, ans, res, cur, or tmp.
-    - A comment of at most 8 words above each block (the setup, the loop, the decision, the return). The comment says why, not what the syntax does.
-    - If a line needs a comment to be understood, the line is too clever. Split it.
-    - Prefer a plain for or while that shows the idea.
-    Insert 4-8 TR("note", var1, var2, ...); statements. Rules: each TR is ONE complete line on its own; inside if/else/for/while it must sit inside braces (never the unbraced body); the note is at most 8 plain words and says what is happening at this point, with no variable values inside it; the variables are in-scope names (or simple expressions such as st.size() or dp[a]) whose values should be shown, using the same names as in viz. Put TR where a teacher would pause: after initialisation, at each key decision (push, pop, compare, update, move a pointer) and just before returning. No TR may fire more than about 25 times on tests[0]. TR is provided by the runner and the student never sees it. Use TR in solution only.
+    Insert 4 to 6 TR("note", var1, var2, ...); statements. Rules: each TR is ONE complete line on its own; inside if/else/for/while it must sit inside braces (never the unbraced body); the note is at most 8 plain words and says what is happening at this point, with no variable values inside it; the variables are in-scope names (or simple expressions such as st.size() or dp[a]) whose values should be shown, using the same names as in viz. Put TR where a teacher would pause: after initialisation, at each key decision (push, pop, compare, update, move a pointer) and just before returning. No TR may fire more than about 25 times on tests[0]. TR is provided by the runner and the student never sees it. Use TR in solution only.
   - driver: a complete int main() (plus helper functions above it if you need them) that reads the test input from stdin in exactly the format your tests use, calls the solution, and prints ONLY the answer. Print a canonical form: true / false for booleans, numbers separated by single spaces on one line for vectors, sort the output when order does not matter, no labels, no extra text. Strip a trailing '\\r' when reading lines.
   - inputFormat and outputFormat: one short sentence each.
 - sampleIndex: 0.
@@ -67,7 +66,7 @@ ${SAFETY}
 
 Rules:
 - Keep the TR("note", vars...); statements (single complete lines, braces around any controlled statement) and keep the same variable names.
-- Keep the short teaching comments and the plain names. Do not compress the code to make it shorter.
+- Keep the solution short. Do not add comments, blank lines, or extra variables. Do not expand one clear line into several.
 - No #include, no "using namespace std;", no main() in solution. No C++17 features.
 - Prefer fixing the code. Change a test's expected value ONLY when you can show, by careful step-by-step reasoning, that your expected value was miscomputed. Never change tests whose note starts with "statement:". Never special-case an input to make a test pass.
 - If the driver prints in a different format than the expected values, fix the driver or the expected values consistently.`;
@@ -181,9 +180,8 @@ ${SAFETY}
 
 Rules for every version:
 - Follow the C++. Do not switch to a different algorithm. Ignore any TR(...) lines; those are not part of the program.
-- One action per line. Names a person would say: left, right, seen, best, count. Use i for a loop index.
-- A short comment above each block that says why, in at most 8 words. No clever one-liners.
-- pseudocode: plain English steps, numbered. No language syntax, no braces. 8 to 16 lines. Show the setup, the loop, the decision, and what is returned.
+- Match that length. No comments. No blank line between ordinary statements. Names stay left, right, seen, best, count, and i for a loop index.
+- pseudocode: 6 to 10 short numbered steps. No language syntax, no braces. One action per step.
 - c: one complete C program (stdio.h). main reads the same stdin format and prints the same answer.
 - python: one complete script. Read stdin the same way and print the same answer. Python 3.
 - java: one public class Main. main reads the same stdin format and prints the same answer.
