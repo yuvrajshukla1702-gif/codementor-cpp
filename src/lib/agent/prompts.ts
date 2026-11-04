@@ -35,8 +35,8 @@ OUTPUT: exactly one JSON object and nothing else. Write the keys in THIS order: 
   - input is the exact text fed to stdin. expected is the exact text the program prints. Work expected out step by step; the compiler will check you.
 - code:
   - solution: C++14 for GCC 6: NO structured bindings, NO if constexpr, NO std::optional / std::gcd / std::string_view / std::variant, no C++17 library. Do NOT write #include or "using namespace std;" (they are added for you: <bits/stdc++.h> and using namespace std). No main() in solution.
-    For problems use the LeetCode form: class Solution { public: ... }; with the usual signature. Correct for every input within typical constraints. Use the normal optimal idea (hash map, two pointers, stack, sliding window, dp) when that is the lesson.
-    Write it the way a strong model answers a coding question: the shortest correct solution, nothing extra. A typical easy function body is about 8 to 15 lines. Do not pad it.
+    For problems use the LeetCode form and nothing else around it: class Solution { public: ReturnType method(args) { ... return ...; } };. The method returns the answer. It does not read input and it does not print. Correct for every input within typical constraints. Use the normal optimal idea (hash map, two pointers, stack, sliding window, dp) when that is the lesson.
+    Write it the way a strong model answers a coding question: the shortest correct solution, nothing extra. A typical easy function body is about 8 to 15 lines. Do not pad it. Shape to copy, not an algorithm to copy: class Solution { public: vector<int> twoSum(vector<int>& nums, int target) { ... return {i, j}; } };
     - No comments. No blank line between ordinary statements. Teaching lives outside the code.
     - Do not split a clear expression into temporary variables just to narrate it. A temporary is right when it is the algorithm (need, mid, top).
     - No nested ternaries, no macros, no bit tricks unless the question is about bits.
@@ -182,9 +182,9 @@ Rules for every version:
 - Follow the C++. Do not switch to a different algorithm. Ignore any TR(...) lines; those are not part of the program.
 - Match that length. No comments. No blank line between ordinary statements. Names stay left, right, seen, best, count, and i for a loop index.
 - pseudocode: 6 to 10 short numbered steps. No language syntax, no braces. One action per step.
-- c: one complete C program (stdio.h). main reads the same stdin format and prints the same answer.
-- python: one complete script. Read stdin the same way and print the same answer. Python 3.
-- java: one public class Main. main reads the same stdin format and prints the same answer.
+- c: one function. Parameters in, return the answer. No main, no scanf, no printf.
+- python: class Solution with the method. Return the answer (a list, not a print). No import, no sys.stdin, no print, no main, no if __name__.
+- java: class Solution with the method. Return the answer. No Scanner, no main, no System.out.
 - Do not add markdown fences inside the strings. Newlines inside strings are \\n.`;
 
 export function langsUser(a: {

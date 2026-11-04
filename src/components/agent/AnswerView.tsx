@@ -267,11 +267,11 @@ function DryTab({ run }: { run: Run }) {
 }
 
 const CODE_LANGS = [
-  { id: "pseudo", label: "Pseudocode" },
-  { id: "c", label: "C" },
   { id: "cpp", label: "C++" },
   { id: "python", label: "Python" },
   { id: "java", label: "Java" },
+  { id: "c", label: "C" },
+  { id: "pseudo", label: "Pseudocode" },
 ] as const;
 
 type CodeLang = (typeof CODE_LANGS)[number]["id"];
@@ -292,10 +292,9 @@ function CodeTab({
   const c = run.code;
   if (!c) return <Pending label="Writing the solution" />;
 
-  const full = `// These two lines turn on the C++ tools. The solution is the class below.\n#include <bits/stdc++.h>\nusing namespace std;\n\n${c.solution.trim()}\n\n${c.driver.trim()}\n`;
   const shown =
     lang === "cpp"
-      ? full
+      ? c.solution.trim()
       : lang === "pseudo"
         ? (run.langs?.pseudocode ?? "")
         : lang === "c"
@@ -305,10 +304,10 @@ function CodeTab({
             : (run.langs?.java ?? "");
   const blurb =
     lang === "pseudo"
-      ? "The same steps, in plain English. Read this before the real code."
+      ? "The same steps, in plain English."
       : lang === "cpp"
-        ? "This is the program that was compiled and tested. The class is the solution. main reads the input and prints the answer."
-        : `The same steps as the tested C++, written in ${lang === "c" ? "C" : lang === "python" ? "Python" : "Java"}.`;
+        ? "This is the answer, the class you paste in. It was compiled and tested."
+        : `The same answer, as a ${lang === "c" ? "C function" : lang === "python" ? "Python class" : "Java class"}.`;
   const rows = run.tests ?? [];
   const waiting = lang !== "cpp" && !shown;
 
@@ -323,8 +322,7 @@ function CodeTab({
           )}
           {shown && (
             <span className="ml-auto flex gap-1">
-              <CopyButton text={shown} label={lang === "cpp" ? "Copy full program" : "Copy"} />
-              {lang === "cpp" && <CopyButton text={c.solution} label="Copy solution only" />}
+              <CopyButton text={shown} label="Copy" />
             </span>
           )}
         </div>
@@ -609,7 +607,7 @@ export function AnswerView({
   const hindiBusy = useRef(false);
   const videoRef = useRef(run.video);
   videoRef.current = run.video;
-  const lang: CodeLang = picked ?? (run.langs ? "python" : "cpp");
+  const lang: CodeLang = picked ?? "cpp";
 
   const loadLangs = useCallback(async () => {
     const c = run.code;
