@@ -429,9 +429,10 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
       const user = narrateUser({ hook: sd.hook, explain: sd.explain, sampleInput: sample.input, output: sampleOutput, events: framesForPrompt(frames) });
       const call = (tag: string, system: string) =>
         llmJson(cfg, { tag, system, user, temperature: 0.4, maxTokens: 2600, think: "off", timeoutMs: 90_000, signal }, validateNarration(frames.length));
-      const [e, h] = await Promise.allSettled([call("narrate-english", NARRATE_ENGLISH), call("narrate-hinglish", NARRATE_HINGLISH)]);
-      en = e.status === "fulfilled" ? e.value.data : null;
-      hing = h.status === "fulfilled" ? h.value.data : null;
+      const e = await call("narrate-english", NARRATE_ENGLISH).then((v) => v.data).catch(() => null);
+      const h = await call("narrate-hinglish", NARRATE_HINGLISH).then((v) => v.data).catch(() => null);
+      en = e;
+      hing = h;
     }
     if (aborted()) return;
 

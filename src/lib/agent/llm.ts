@@ -135,8 +135,10 @@ async function readError(res: Response): Promise<LlmError> {
       const j = JSON.parse(raw) as { error?: { message?: string; details?: Array<{ retryDelay?: string }> } | string };
       const e = typeof j.error === "string" ? { message: j.error } : j.error;
       if (e?.message) msg = e.message;
-      const delay = (e as { details?: Array<{ retryDelay?: string }> } | undefined)?.details?.find((d) => d.retryDelay)?.retryDelay;
-      if (delay) retryAfterMs = Math.ceil(parseFloat(delay) * 1000);
+      const details = (e as { details?: Array<{ retryDelay?: unknown }> } | undefined)?.details;
+      const delay = details?.find((d) => d.retryDelay != null)?.retryDelay;
+      const fromDelay = retryDelayMs(delay);
+      if (fromDelay) retryAfterMs = fromDelay;
     } catch {
       if (raw) msg = raw.slice(0, 300);
     }
@@ -145,6 +147,10 @@ async function readError(res: Response): Promise<LlmError> {
   }
   const ra = res.headers.get("retry-after");
   if (ra && !retryAfterMs && Number.isFinite(Number(ra))) retryAfterMs = Number(ra) * 1000;
+  if (!retryAfterMs) {
+    const inMsg = /retry in\s+([\d.]+)\s*s/i.exec(msg);
+    if (inMsg) retryAfterMs = Math.ceil(parseFloat(inMsg[1]) * 1000);
+  }
   const short = msg.replace(/\s+/g, " ").slice(0, 240);
   if (
     res.status === 401 ||
@@ -217,6 +223,24 @@ let geminiModel: string | null = null;
 let thinkingConfigOk = true;
 /** Models that just answered "high demand". They go to the back of the line for a minute. */
 const busyUntil = new Map<string, number>();
+/** Models that just hit the free per-minute cap. Another Flash model usually still has room. */
+const quotaUntil = new Map<string, number>();
+
+function retryDelayMs(delay: unknown): number | undefined {
+  if (typeof delay === "string") {
+    const n = parseFloat(delay);
+    return Number.isFinite(n) ? Math.ceil(n * 1000) : undefined;
+  }
+  if (delay && typeof delay === "object" && "seconds" in delay) {
+    const s = Number((delay as { seconds?: unknown }).seconds);
+    return Number.isFinite(s) ? s * 1000 : undefined;
+  }
+  return undefined;
+}
+
+function coolUntil(model: string): number {
+  return Math.max(busyUntil.get(model) ?? 0, quotaUntil.get(model) ?? 0);
+}
 
 /** Prefer a Flash model that is still offered to new keys, and leave the overloaded 3.8 model for last. */
 const PREFERRED_MODELS = [
@@ -279,12 +303,15 @@ async function geminiOnce(
   const now = Date.now();
   const candidates = [geminiModel, cfg.model, ...PREFERRED_MODELS]
     .filter((m, i, a): m is string => Boolean(m) && a.indexOf(m) === i)
-    .sort((a, b) => Number((busyUntil.get(a) ?? 0) > now) - Number((busyUntil.get(b) ?? 0) > now));
+    .sort((a, b) => Number(coolUntil(a) > now) - Number(coolUntil(b) > now));
   let discovered = false;
   let lastBusy: LlmError | null = null;
+  let lastQuota: LlmError | null = null;
   let timeouts = 0;
+  let quotaTries = 0;
   for (let i = 0; i < candidates.length; i++) {
     const model = candidates[i];
+    if ((quotaUntil.get(model) ?? 0) > Date.now()) continue;
     tried.push(model);
     const signal = modelSignal(call);
     try {
@@ -296,11 +323,21 @@ async function geminiOnce(
       if (call.signal?.aborted) throw new LlmError("Cancelled", "aborted");
       const timedOut = err instanceof LlmError && err.kind === "timeout";
       const busy = err instanceof LlmError && err.kind === "server" && /high demand|overloaded/i.test(err.message);
+      const quota = err instanceof LlmError && err.kind === "quota";
       if (timedOut) {
         timeouts += 1;
         busyUntil.set(model, Date.now() + 60_000);
         if (geminiModel === model) geminiModel = null;
         if (timeouts >= 2) throw err;
+        continue;
+      }
+      if (quota) {
+        quotaTries += 1;
+        const wait = Math.min(Math.max(err.retryAfterMs ?? 15_000, 2_000), 30_000);
+        quotaUntil.set(model, Date.now() + wait);
+        lastQuota = err;
+        if (geminiModel === model) geminiModel = null;
+        if (quotaTries >= 4) break;
         continue;
       }
       if (!(err instanceof LlmError) || (err.kind !== "model" && !busy)) throw err;
@@ -315,6 +352,27 @@ async function geminiOnce(
         if (found && !tried.includes(found)) candidates.push(found);
       }
     }
+  }
+  const soonest = [...quotaUntil.entries()]
+    .filter(([, until]) => until > Date.now())
+    .sort((a, b) => a[1] - b[1])[0];
+  if (soonest && !call.signal?.aborted) {
+    const wait = Math.min(soonest[1] - Date.now(), 20_000);
+    if (wait > 0) await sleep(wait + 400, call.signal);
+    try {
+      onText?.("");
+      const text = await geminiGenerate(cfg.apiKey, soonest[0], call, modelSignal(call), onText);
+      geminiModel = soonest[0];
+      quotaUntil.delete(soonest[0]);
+      return { text, model: soonest[0] };
+    } catch (err) {
+      if (err instanceof LlmError && err.kind === "quota") lastQuota = err;
+      else if (err instanceof LlmError && err.kind !== "model") throw err;
+    }
+  }
+  if (lastQuota) {
+    lastQuota.retryAfterMs = Math.max(lastQuota.retryAfterMs ?? 0, 60_000);
+    throw lastQuota;
   }
   if (lastBusy) throw lastBusy;
   throw new LlmError(`No usable Gemini model found (tried ${tried.join(", ")}).`, "model");
