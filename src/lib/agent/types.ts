@@ -146,7 +146,7 @@ export type AgentStatus = {
   configured: boolean;
   provider: "gemini" | "openai" | null;
   model: string | null;
-  compiler: { ok: boolean; version?: string };
+  compiler: { ok: boolean; version?: string; remote?: boolean };
   demo: Array<{ id: string; label: string; question: string }>;
   /** Present only when ?test=1 was requested */
   test?: { ok: boolean; ms?: number; message?: string; code?: ErrorCode };

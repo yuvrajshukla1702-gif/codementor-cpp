@@ -405,7 +405,7 @@ async function withSlot<T>(fn: () => Promise<T>): Promise<T> {
 
 /* --------------------------------- compiler --------------------------------- */
 
-type CompilerInfo = { ok: boolean; version?: string };
+export type CompilerInfo = { ok: boolean; version?: string; remote?: boolean };
 const g = globalThis as unknown as {
   __cmAgentCompiler?: { at: number; info: CompilerInfo };
   __cmAgentPch?: Promise<string | null>;
@@ -418,7 +418,9 @@ export async function compilerInfo(): Promise<CompilerInfo> {
   if (cached && Date.now() - cached.at < (cached.info.ok ? 120_000 : 15_000)) return cached.info;
   const r = await runProc("g++", ["--version"], "", 8_000);
   const info: CompilerInfo =
-    r.missing || r.code !== 0 ? { ok: false } : { ok: true, version: (r.stdout.split(/\r?\n/)[0] || "g++").trim().slice(0, 90) };
+    r.missing || r.code !== 0
+      ? { ok: true, remote: true, version: "g++ 13.2.0" }
+      : { ok: true, version: (r.stdout.split(/\r?\n/)[0] || "g++").trim().slice(0, 90) };
   g.__cmAgentCompiler = { at: Date.now(), info };
   return info;
 }
@@ -436,7 +438,7 @@ export function ensurePch(): Promise<string | null> {
 
 async function buildPch(): Promise<string | null> {
   const info = await compilerInfo();
-  if (!info.ok) return null;
+  if (!info.ok || info.remote) return null;
   const key = createHash("sha1").update(`${info.version}|${CPP_FLAGS.join(" ")}`).digest("hex").slice(0, 12);
   const dir = path.join(ROOT, `pch-${key}`);
   const gch = path.join(dir, "bits", "stdc++.h.gch");
@@ -535,6 +537,69 @@ export function compileCpp(source: string): Promise<CompileResult> {
 }
 
 export type RunResult = { code: number | null; stdout: string; stderr: string; ms: number; timedOut: boolean; truncated: boolean };
+
+export type RemoteRun = {
+  ok: boolean;
+  stage: "compile" | "run";
+  stdout: string;
+  stderr: string;
+  code: number;
+  ms: number;
+  compileError?: string;
+};
+
+/** Compile and run one program on Wandbox when this machine has no g++. */
+export async function runWandbox(source: string, stdin: string): Promise<RemoteRun> {
+  const started = Date.now();
+  const fail = (compileError: string): RemoteRun => ({
+    ok: false,
+    stage: "compile",
+    stdout: "",
+    stderr: "",
+    code: 1,
+    ms: Date.now() - started,
+    compileError,
+  });
+  try {
+    const res = await fetch("https://wandbox.org/api/compile.json", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(25_000),
+      body: JSON.stringify({
+        compiler: "gcc-13.2.0",
+        options: "gnu++17",
+        code: source,
+        stdin,
+        save: false,
+      }),
+    });
+    if (!res.ok) return fail("The online compiler did not answer.");
+    const result = (await res.json()) as {
+      status?: string;
+      compiler_error?: string;
+      compiler_message?: string;
+      compiler_output?: string;
+      program_output?: string;
+      program_error?: string;
+    };
+    const status = String(result.status ?? "1");
+    const stdout = result.program_output || "";
+    const compileText = (result.compiler_error || result.compiler_message || "").trim();
+    if (status !== "0" && compileText && !stdout) {
+      return { ...fail(trimDiagnostics(compileText)), stderr: compileText };
+    }
+    return {
+      ok: status === "0",
+      stage: "run",
+      stdout,
+      stderr: result.program_error || "",
+      code: Number.isFinite(Number(status)) ? Number(status) : 1,
+      ms: Date.now() - started,
+    };
+  } catch {
+    return fail("The online compiler did not answer in time.");
+  }
+}
 
 export async function runExe(exe: string, input: string, timeoutMs = RUN_TIMEOUT): Promise<RunResult> {
   const r = await runProc(exe, [], input, timeoutMs, path.dirname(exe));

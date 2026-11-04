@@ -132,7 +132,8 @@ function StatusRow({
       )}
       {status.compiler.ok ? (
         <Pill tone="info">
-          <Icon name="terminal" size={12} /> {compilerName(status.compiler.version)} ready to test code
+          <Icon name="terminal" size={12} /> {compilerName(status.compiler.version)}
+          {status.compiler.remote ? " online" : ""} ready to test code
         </Pill>
       ) : (
         <Pill tone="warn">
@@ -443,7 +444,7 @@ function Trust() {
     {
       icon: "terminal",
       title: "It tests its own code",
-      body: "Every answer is compiled with g++ on this computer and run on test cases. If a check fails, the AI is shown the real error and fixes it.",
+      body: "Every answer is compiled and run on test cases. This computer uses g++; the website uses an online compiler. If a check fails, the AI is shown the real error and fixes it.",
     },
     {
       icon: "list",

@@ -7,6 +7,7 @@ import {
   ensurePch,
   outputsMatch,
   runExe,
+  runWandbox,
   safetyIssues,
   type CompileResult,
   type Sources,
@@ -111,6 +112,8 @@ type Build = {
   testFeedback: string;
   traceFeedback: string;
   missing: boolean;
+  /** Plain-program output already captured on the online compiler, so the dry run does not need a local exe. */
+  sampleTrace?: { stdout: string; stderr: string; code: number };
 };
 
 async function buildAndTest(solution: string, driver: string, tests: TestRow[]): Promise<Build> {
@@ -144,6 +147,65 @@ async function buildAndTest(solution: string, driver: string, tests: TestRow[]):
   };
 }
 
+function rowFromRemote(t: TestRow, stdout: string, stderr: string, code: number): TestRow {
+  const out = stdout.replace(/\r\n/g, "\n").trim();
+  let actual = out;
+  if (code !== 0) actual = `${out ? `${out}\n` : ""}(crashed, exit code ${code}${stderr.trim() ? `: ${stderr.trim().slice(0, 160)}` : ""})`;
+  const checkable = t.expected.trim().length > 0;
+  return {
+    ...t,
+    actual: actual.slice(0, 400),
+    ok: code === 0 && (checkable ? outputsMatch(t.expected, stdout) : true),
+  };
+}
+
+/** Same checks as buildAndTest, but each run is one Wandbox compile+execute. Used when this host has no g++. */
+async function buildAndTestRemote(solution: string, driver: string, tests: TestRow[]): Promise<Build> {
+  const asm = assembleSources(solution, driver);
+  const empty = { asm, plain: null, traced: null, rows: tests.map((t) => ({ ...t })), traceFeedback: "", missing: false };
+  const issues = [...safetyIssues(asm.plain), ...(asm.leftoverTrace ? ["a TR(...) call is not one complete line on its own"] : [])];
+  if (issues.length) return { ...empty, testFeedback: `Static check failed: ${issues.join("; ")}` };
+
+  const list = tests.length ? tests : [{ input: "", expected: "", note: "demo run" }];
+  const probe = await runWandbox(asm.plain, list[0].input);
+  if (probe.stage === "compile") {
+    return {
+      ...empty,
+      plain: { ok: false, error: probe.compileError, ms: probe.ms },
+      testFeedback: `Compile error:\n${probe.compileError}`,
+    };
+  }
+
+  const rows: TestRow[] = new Array(list.length);
+  rows[0] = rowFromRemote(list[0], probe.stdout, probe.stderr, probe.code);
+  let next = 1;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      const r = await runWandbox(asm.plain, list[i].input);
+      rows[i] =
+        r.stage === "compile"
+          ? { ...list[i], actual: "(did not compile)", ok: false }
+          : rowFromRemote(list[i], r.stdout, r.stderr, r.code);
+    }
+  };
+  const traceP = runWandbox(asm.traced, list[0].input);
+  await Promise.all([worker(), worker()]);
+  const trace = await traceP;
+  const failed = rows.filter((r) => !r.ok);
+  const sampleTrace = trace.stage === "run" ? { stdout: trace.stdout, stderr: trace.stderr, code: trace.code } : undefined;
+  return {
+    asm,
+    plain: { ok: true, ms: probe.ms },
+    traced: trace.stage === "compile" ? { ok: false, error: trace.compileError, ms: trace.ms } : { ok: true, ms: trace.ms },
+    rows,
+    testFeedback: failed.length ? failureFeedback(rows) : "",
+    traceFeedback: "",
+    missing: false,
+    sampleTrace,
+  };
+}
+
 /* ------------------------------------------ pipeline ------------------------------------------ */
 
 export type RunOpts = {
@@ -163,7 +225,7 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
   try {
     status("hook", "Reading your question");
     const compilerP = compilerInfo().then((c) => {
-      if (c.ok) void ensurePch();
+      if (c.ok && !c.remote) void ensurePch();
       return c;
     });
 
@@ -217,8 +279,8 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
     emit({ t: "code", data: bundle(), tests, viz: sd.viz });
 
     /* 2. Verify with the real compiler; let the model repair itself with real error text. */
-    status("verify", "Compiling and testing your answer on this machine");
     const comp = await compilerP;
+    status("verify", comp.remote ? "Compiling and testing on the online compiler" : "Compiling and testing your answer on this machine");
     const vStart = Date.now();
     let repaired = 0;
     let repairNote = "";
@@ -226,7 +288,8 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
     let repairBlocked = "";
 
     if (comp.ok) {
-      build = await buildAndTest(solution, driver, tests);
+      const testBuild = () => (comp.remote ? buildAndTestRemote(solution, driver, tests) : buildAndTest(solution, driver, tests));
+      build = await testBuild();
       while (!aborted() && !build.missing && (build.testFeedback || build.traceFeedback) && repaired < MAX_REPAIRS) {
         const feedback = build.testFeedback || build.traceFeedback;
         status("repair", `${build.testFeedback ? "A check failed" : "The step-by-step build failed"}, so the AI is fixing its code (attempt ${repaired + 1})`);
@@ -251,7 +314,7 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
           repaired++;
           emit({ t: "code", data: bundle(), tests, viz: sd.viz });
           status("verify", "Re-running the checks");
-          build = await buildAndTest(solution, driver, tests);
+          build = await testBuild();
         } catch (err) {
           if (aborted()) return;
           repairBlocked = describeLlmError(err).message;
@@ -306,7 +369,17 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
     let sampleOutput = (sample.actual ?? sample.expected ?? "").trim();
     let lines: string[] = build?.asm.tracedLines ?? [];
 
-    if (build?.plain?.ok && build.traced?.ok) {
+    if (build?.sampleTrace && build.plain?.ok) {
+      const tr = build.sampleTrace;
+      const parsed = parseTrace(tr.stderr);
+      const plainOut = (sample.actual ?? "").replace(/\n?\(crashed[\s\S]*$/, "").trim();
+      if (tr.code === 0 && plainOut && outputsMatch(plainOut, tr.stdout) && parsed.events.length >= 2) {
+        events = parsed.events;
+        machineTraced = true;
+        sampleOutput = plainOut;
+        lines = build.asm.tracedLines;
+      }
+    } else if (build?.plain?.ok && build.traced?.ok && build.traced.exe) {
       const [tr, pl] = await Promise.all([runExe(build.traced.exe!, sample.input), runExe(build.plain.exe!, sample.input)]);
       const parsed = parseTrace(tr.stderr);
       if (tr.code === 0 && !tr.timedOut && outputsMatch(pl.stdout, tr.stdout) && parsed.events.length >= 2) {
@@ -435,6 +508,19 @@ export async function runUserInput(a: { solution: string; driver: string; input:
   const issues = safetyIssues(asm.plain);
   if (issues.length) return { ok: false, stdout: "", stderr: "", ms: 0, message: `Refused to run this code: ${issues.join("; ")}.` };
   const comp = await compilerInfo();
+  if (comp.remote) {
+    const r = await runWandbox(asm.plain, a.input);
+    if (r.stage === "compile") {
+      return { ok: false, stdout: "", stderr: "", ms: r.ms, compileError: r.compileError, message: "It did not compile." };
+    }
+    return {
+      ok: r.code === 0,
+      stdout: r.stdout.replace(/\r\n/g, "\n"),
+      stderr: r.stderr.slice(0, 600),
+      ms: r.ms,
+      message: r.code !== 0 ? `The program crashed (exit code ${r.code}).` : undefined,
+    };
+  }
   if (!comp.ok) return { ok: false, stdout: "", stderr: "", ms: 0, message: "This computer has no C++ compiler (g++), so code can't be run here." };
   const c = await compileCpp(asm.plain);
   if (!c.ok) return { ok: false, stdout: "", stderr: "", ms: c.ms, compileError: c.error, message: "It did not compile." };
