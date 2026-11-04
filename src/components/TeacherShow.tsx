@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { KaraokeLine, TeacherPresence } from "@/components/course/TeacherPresence";
+import { KaraokeLine } from "@/components/course/TeacherPresence";
 import { Icon } from "@/components/ui/icons";
 import type { ShowScene, TeacherShowScript } from "@/lib/teacher-shows";
 import { estimateSecs, fetchSpeechCached, prefetchSpeech, type VoiceLang } from "@/lib/speech-cache";
@@ -52,53 +52,18 @@ function sceneOf(chapter?: string, explicit?: ShowScene): ShowScene | null {
   return null;
 }
 
-function StoryHead({ scene, title, note }: { scene: ShowScene; title: string; note: string }) {
-  const hero = scene === "ask" || scene === "reject" || scene === "trick" || scene === "win";
-  const tone =
-    scene === "reject"
-      ? "border-[#ff5a6a]/50 text-[#ff8b96]"
-      : scene === "win" || scene === "trick"
-        ? "border-[#c8f65d]/45 text-[#d6ff8a]"
-        : scene === "warn"
-          ? "border-[#ffd166]/45 text-[#ffe3a3]"
-          : "border-white/15 text-white/80";
-  const stamp =
-    scene === "reject" ? "Too slow" : scene === "win" ? "Answer" : scene === "trick" ? "Use this" : scene === "ask" ? "Question" : "Watch";
+function StoryHead({ scene, title }: { scene: ShowScene; title: string }) {
+  const big = scene === "ask" || scene === "reject" || scene === "trick" || scene === "win";
   return (
-    <div className={`relative mb-3 w-full overflow-hidden rounded-2xl border bg-[#0c1219]/90 px-4 py-4 sm:px-6 sm:py-5 ${hero ? "max-w-4xl" : "max-w-3xl"} ${tone}`}>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="cm-flow text-[11px] font-semibold uppercase tracking-[0.18em]">{SCENE_STAMP[scene]}</span>
-        <span className={`cm-stamp rounded-md border px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide ${tone}`}>{stamp}</span>
-      </div>
+    <div className="mb-2 w-full max-w-3xl px-4 text-center">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">{SCENE_STAMP[scene]}</p>
       <p
-        className={`cm-slam font-display leading-[1.05] text-white ${
-          hero ? "text-3xl sm:text-5xl" : "text-xl sm:text-2xl"
-        } ${scene === "reject" ? "cm-struck text-white/80" : ""}`}
+        className={`cm-slam font-display text-white ${big ? "text-4xl leading-[1.02] sm:text-6xl" : "text-2xl leading-tight sm:text-4xl"} ${
+          scene === "reject" ? "cm-struck text-white/70" : ""
+        } ${scene === "win" ? "text-[#d6ff8a]" : ""}`}
       >
         {title}
       </p>
-      {note && scene !== "walk" && (
-        <p className="cm-flow mt-3 max-w-2xl text-sm text-white/70 sm:text-base" style={{ animationDelay: "180ms" }}>
-          {note}
-        </p>
-      )}
-      {(scene === "idea" || scene === "trick") && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] font-semibold">
-          <span className="cm-flow rounded-full bg-white/10 px-3 py-1 text-white/80">Problem</span>
-          <span className="text-white/30">→</span>
-          <span className="cm-flow rounded-full bg-[#ff5a6a]/15 px-3 py-1 text-[#ff8b96] line-through decoration-[#ff5a6a]" style={{ animationDelay: "120ms" }}>
-            Too slow
-          </span>
-          <span className="text-white/30">→</span>
-          <span className="cm-flow rounded-full bg-[#c8f65d]/15 px-3 py-1 text-[#d6ff8a]" style={{ animationDelay: "240ms" }}>
-            Trick
-          </span>
-          <span className="text-white/30">→</span>
-          <span className="cm-flow rounded-full bg-white/10 px-3 py-1 text-white/80" style={{ animationDelay: "360ms" }}>
-            Answer
-          </span>
-        </div>
-      )}
     </div>
   );
 }
@@ -568,10 +533,6 @@ export function TeacherShow({
   const boardTitle = step?.board || script.subtitle;
   const scene = sceneOf(step?.chapter, step?.scene);
   const titleOnly = scene === "ask" || scene === "reject" || scene === "win" || scene === "cost" || scene === "warn";
-  const storyNote = Object.entries(step?.stats || {})
-    .map(([k, v]) => `${k}: ${v}`)
-    .join("  ·  ");
-  const gesture = step?.gesture || (playing ? "explain" : "think");
   const focusIdx = step?.hi?.[0] ?? Object.values(step?.pointers || {})[0] ?? -1;
 
   return (
@@ -604,24 +565,20 @@ export function TeacherShow({
           </div>
 
           <div
-            className={`absolute inset-0 grid gap-2 px-3 pt-10 sm:gap-4 sm:px-5 sm:pt-12 ${
-              titleOnly ? "grid-cols-1" : "grid-cols-[72px_minmax(0,1fr)] sm:grid-cols-[110px_minmax(0,1fr)]"
-            } ${fullscreen ? "pb-28 sm:pb-32" : "pb-24"}`}
+            className={`absolute inset-0 flex items-center justify-center px-4 pt-10 sm:px-8 ${
+              fullscreen ? "pb-28 sm:pb-32" : "pb-24"
+            }`}
           >
-            {!titleOnly && (
-            <div className="flex items-end justify-center pb-2 sm:items-center sm:pb-0">
-              <TeacherPresence speaking={playing && voiceOn && !loadingVoice} gesture={gesture} compact={!fullscreen && compact} />
-            </div>
-            )}
-
-            <div key={i} ref={boardRef} className="cm-chalk relative flex min-h-0 items-center justify-center">
+            <div key={i} ref={boardRef} className="cm-chalk relative flex h-full min-h-0 w-full items-center justify-center">
              <div
               ref={innerRef}
               className="flex w-full flex-col items-center"
               style={fit < 1 ? { transform: `scale(${fit})` } : undefined}
              >
-              {scene ? (
-                <StoryHead scene={scene} title={boardTitle} note={storyNote} />
+              {scene === "walk" ? (
+                <p className="cm-slam mb-4 max-w-xl text-center font-display text-2xl leading-tight text-white sm:text-3xl">{boardTitle}</p>
+              ) : scene ? (
+                <StoryHead scene={scene} title={boardTitle} />
               ) : (
               <div
                 className={`w-full max-w-3xl rounded-lg border border-white/10 bg-[#0c1219]/90 px-3 shadow-inner sm:px-4 ${
@@ -851,11 +808,11 @@ export function TeacherShow({
                 Writing the Hindi voice. English plays until those lines are ready.
               </p>
             )}
-            <div className="max-w-[92%] rounded bg-black/75 px-2 py-1">
+            <div className="max-w-[92%] px-2 py-1">
               <KaraokeLine
                 text={spoken}
                 progress={playing ? stepProgress : 1}
-                className="justify-center text-[15px] font-medium leading-snug sm:text-base"
+                className="justify-center text-[15px] font-medium leading-snug text-white drop-shadow sm:text-base"
               />
               {caption && <p className="mt-0.5 text-center text-[12px] leading-snug text-white/70">{caption}</p>}
             </div>

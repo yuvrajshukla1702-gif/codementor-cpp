@@ -35,13 +35,31 @@ OUTPUT: exactly one JSON object and nothing else. Write the keys in THIS order: 
   - input is the exact text fed to stdin. expected is the exact text the program prints. Work expected out step by step; the compiler will check you.
 - code:
   - solution: C++14 for GCC 6: NO structured bindings, NO if constexpr, NO std::optional / std::gcd / std::string_view / std::variant, no C++17 library. Do NOT write #include or "using namespace std;" (they are added for you: <bits/stdc++.h> and using namespace std). No main() in solution.
-    For problems use the LeetCode form and nothing else around it: class Solution { public: ReturnType method(args) { ... return ...; } };. The method returns the answer. It does not read input and it does not print. Correct for every input within typical constraints. Use the normal optimal idea (hash map, two pointers, stack, sliding window, dp) when that is the lesson.
-    Write it the way a strong model answers a coding question: the shortest correct solution, nothing extra. A typical easy function body is about 8 to 15 lines. Do not pad it. Shape to copy, not an algorithm to copy: class Solution { public: vector<int> twoSum(vector<int>& nums, int target) { ... return {i, j}; } };
+    For problems use the LeetCode form and nothing else around it: class Solution { public: ReturnType method(args) { ... return ...; } };. The method returns the answer. It does not read input and it does not print. Correct for every input within typical constraints. Use the normal optimal idea, written as plainly as ChatGPT or Gemini would paste it.
+    Match this density. This is the length and the shape, not a puzzle to copy:
+
+    class Solution {
+    public:
+        vector<int> twoSum(vector<int>& nums, int target) {
+            unordered_map<int, int> seen;
+            TR("start", nums, target);
+            for (int i = 0; i < (int)nums.size(); i++) {
+                int need = target - nums[i];
+                TR("check the partner", i, need);
+                if (seen.count(need)) return {seen[need], i};
+                seen[nums[i]] = i;
+            }
+            TR("no pair", seen);
+            return {};
+        }
+    };
+
+    An easy method is about this long once the TR lines are ignored. Change the method name, the arguments, and the body to fit the question. Do not add a helper, a second class, a comment, or a variable whose only job is to explain. One map, or two pointers, or one stack. Early return.
     - No comments. No blank line between ordinary statements. Teaching lives outside the code.
     - Do not split a clear expression into temporary variables just to narrate it. A temporary is right when it is the algorithm (need, mid, top).
     - No nested ternaries, no macros, no bit tricks unless the question is about bits.
     - Names a person would say: left, right, seen, best, count, stack. Use i for a loop index. Do not use mp, ans, res, cur, or tmp.
-    Insert 4 to 6 TR("note", var1, var2, ...); statements. Rules: each TR is ONE complete line on its own; inside if/else/for/while it must sit inside braces (never the unbraced body); the note is at most 8 plain words and says what is happening at this point, with no variable values inside it; the variables are in-scope names (or simple expressions such as st.size() or dp[a]) whose values should be shown, using the same names as in viz. Put TR where a teacher would pause: after initialisation, at each key decision (push, pop, compare, update, move a pointer) and just before returning. No TR may fire more than about 25 times on tests[0]. TR is provided by the runner and the student never sees it. Use TR in solution only.
+    Insert exactly 3 TR("note", var1, var2, ...); statements, not more. Rules: each TR is ONE complete line on its own; inside if/else/for/while it must sit inside braces (never the unbraced body); the note is at most 8 plain words; the variables are in-scope names. Do not add a line of code just so a TR has somewhere to sit. No TR may fire more than about 25 times on tests[0]. TR is deleted before the student sees the code. Use TR in solution only.
   - driver: a complete int main() (plus helper functions above it if you need them) that reads the test input from stdin in exactly the format your tests use, calls the solution, and prints ONLY the answer. Print a canonical form: true / false for booleans, numbers separated by single spaces on one line for vectors, sort the output when order does not matter, no labels, no extra text. Strip a trailing '\\r' when reading lines.
   - inputFormat and outputFormat: one short sentence each.
 - sampleIndex: 0.
@@ -51,6 +69,7 @@ kind "code": solution is the student's idea cleaned up and corrected if buggy. K
 
 Language: plain English, short sentences, no emojis, no markdown inside strings. JSON rules: valid JSON, newlines inside strings written as \\n, no trailing commas, no comments.
 
+The JSON below shows the key names only. Ignore how long its solution is. Your solution follows the short Two Sum shape above.
 Here is an example of the exact FORMAT (for a different question):
 ${solveExample()}`;
 
@@ -66,7 +85,7 @@ ${SAFETY}
 
 Rules:
 - Keep the TR("note", vars...); statements (single complete lines, braces around any controlled statement) and keep the same variable names.
-- Keep the solution short. Do not add comments, blank lines, or extra variables. Do not expand one clear line into several.
+- Keep the solution short, the same length ChatGPT would paste. Do not add comments, blank lines, or extra variables. Do not expand one clear line into several.
 - No #include, no "using namespace std;", no main() in solution. No C++17 features.
 - Prefer fixing the code. Change a test's expected value ONLY when you can show, by careful step-by-step reasoning, that your expected value was miscomputed. Never change tests whose note starts with "statement:". Never special-case an input to make a test pass.
 - If the driver prints in a different format than the expected values, fix the driver or the expected values consistently.`;

@@ -295,24 +295,24 @@ export function naturalHinglish(raw: string) {
 export function prepareSpeech(raw: string, lang: string) {
   const text = tidy(raw);
   if (lang === "english") {
-    return { text, voice: "en-IN-PrabhatNeural", rate: "-8%" };
+    return { text, voice: "en-US-AndrewMultilingualNeural", rate: "-2%" };
   }
   if (lang === "hindi") {
     const spoken = /[\u0900-\u097F]/.test(text) ? text : hinglishSpeak(text);
-    return { text: spoken, voice: "hi-IN-MadhurNeural", rate: "-6%" };
+    return { text: spoken, voice: "hi-IN-SwaraNeural", rate: "-2%" };
   }
-  // Hinglish = the same Indian teacher, Hindi grammar, English technical words
-  return { text: naturalHinglish(text), voice: "en-IN-PrabhatNeural", rate: "-8%" };
+  // Hinglish stays on an Indian voice so the Hindi words are said naturally.
+  return { text: naturalHinglish(text), voice: "en-IN-NeerjaNeural", rate: "-2%" };
 }
 
 export function ratePercent(speed: number) {
   // Neural voices already talk a bit fast. 1x sits just under their default so it sounds spoken.
-  if (speed >= 2) return "+18%";
-  if (speed >= 1.8) return "+12%";
-  if (speed >= 1.5) return "+4%";
-  if (speed >= 1.25) return "-2%";
-  if (speed >= 1) return "-8%";
-  return "-16%";
+  if (speed >= 2) return "+22%";
+  if (speed >= 1.8) return "+16%";
+  if (speed >= 1.5) return "+8%";
+  if (speed >= 1.25) return "+2%";
+  if (speed >= 1) return "-2%";
+  return "-12%";
 }
 
 export function escapeXml(text: string) {
