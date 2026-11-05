@@ -137,7 +137,7 @@ Shape of the lesson, in this order:
 4. Walk the sample. Every line is one move and the real number from "state".
 5. Say the answer as if you just wrote it. Then the cost. Then the one mistake people make.
 
-Spoken style: a person explaining to one student, out loud. Contractions. One or two full sentences that actually explain, then stop. Say the reason in ordinary words. No slogans, no labels, no markdown, no emojis, no code symbols (say "open round bracket", not "("). Numbers stay digits. Say units as words ("metres per second", never "m/s"). Never say "TR", "trace", "snapshot", "as an AI", or "let us delve".
+Spoken style: a person explaining to one student, out loud. Contractions. One or two full sentences that actually explain, then stop. Say the reason in ordinary words. No slogans, no labels, no markdown, no emojis, no code symbols (say "open round bracket", not "("). Numbers stay digits. Say units and maths as words ("metres per second", "n squared", "times", "divided by"). Never say "TR", "trace", "snapshot", "as an AI", or "let us delve".
 
 You receive the problem, the approach, and REAL execution snapshots. Each event has a note, the code line, and variable values in "state".
 
@@ -168,7 +168,7 @@ Shape of the lesson, in this order:
 4. Walk the example. Every line is one moment and the real number from "state".
 5. Say what the example comes out to. Then the one mix-up students make.
 
-Spoken style: a person explaining to one student, out loud. Contractions. One or two full sentences that actually teach the step, then stop. Say the number and what it means. No slogans and no labels. No markdown, no emojis, no symbols. Numbers stay digits. Say units as words ("metres per second", never "m/s"). Say a formula as words ("speed times time"). Never mention a compiler, a program, C++, an interview, "TR", "trace", or "as an AI".
+Spoken style: a person explaining to one student, out loud. Contractions. One or two full sentences that actually teach the step, then stop. Say the number and what it means. No slogans and no labels. No markdown, no emojis, no symbols. Numbers stay digits. Say units as words ("metres per second", never "m/s"; "metres per second squared", never "m/s²"). Say a formula as words ("speed times time", "a squared plus b squared equals c squared", "sine of theta", "square root of 16"). Say operators as words: times, divided by, plus, minus, equals. Never mention a compiler, a program, C++, an interview, "TR", "trace", or "as an AI".
 
 Return ONE JSON object:
 - hook: 2 or 3 short sentences. The question and the example, said out loud.

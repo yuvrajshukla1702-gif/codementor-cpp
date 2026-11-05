@@ -326,15 +326,56 @@ function tidy(raw: string) {
     .replace(/CO2/g, "C O 2")
     .replace(/H2O/g, "H 2 O")
     .replace(/\bO2\b/g, "O 2")
+    .replace(/\bpH\b/g, "p H")
     .replace(/°\s*C\b/g, " degrees celsius")
     .replace(/°\s*F\b/g, " degrees fahrenheit")
+    .replace(/\bm\/s\s*[²2]\b|\bm\/s\^2\b/gi, "metres per second squared")
     .replace(/\bkm\/h(?:r)?\b/gi, "kilometres per hour")
     .replace(/\bkm\/s\b/gi, "kilometres per second")
     .replace(/\bcm\/s\b/gi, "centimetres per second")
     .replace(/\bm\/s\b/gi, "metres per second")
+    .replace(/\bkg\/m\s*[³3]\b|\bkg\/m\^3\b/gi, "kilograms per cubic metre")
+    .replace(/\bN\/m\s*[²2]\b|\bN\/m\^2\b/gi, "newtons per square metre")
+    .replace(/\bmol\/L\b/gi, "moles per litre")
+    .replace(/\bcm\s*[²2]\b|\bcm\^2\b/gi, "square centimetres")
+    .replace(/\bm\s*[²2]\b|\bm\^2\b/gi, "square metres")
+    .replace(/\bm\s*[³3]\b|\bm\^3\b/gi, "cubic metres")
     .replace(/\bsqrt\s*\(([^)]+)\)/gi, "square root of $1")
+    .replace(/√\s*\(([^)]+)\)/g, "square root of $1")
+    .replace(/√\s*([A-Za-z0-9]+)/g, "square root of $1")
+    .replace(/\bnCr\b/gi, "n choose r")
+    .replace(/\bnPr\b/gi, "n permute r")
+    .replace(/\bdx\/dt\b/gi, "d x by d t")
+    .replace(/\bdy\/dx\b/gi, "d y by d x")
+    .replace(/\bd\/dx\b/gi, "d by d x")
+    .replace(/\bsin\b/gi, "sine")
+    .replace(/\bcos\b/gi, "cosine")
+    .replace(/\btan\b/gi, "tangent")
+    .replace(/\bcot\b/gi, "cotangent")
+    .replace(/\bsec\b/gi, "secant")
+    .replace(/\bcosec\b|\bcsc\b/gi, "cosecant")
+    .replace(/\bln\b/gi, "natural log")
+    .replace(/\blog\b/gi, "log")
+    .replace(/\bπ\b/gi, "pi")
+    .replace(/\\pi\b/gi, "pi")
+    .replace(/\bθ\b/gi, "theta")
+    .replace(/\bΔ\b|\\Delta\b/g, "delta")
+    .replace(/\b∑\b/g, "sum of")
+    .replace(/\b∫\b/g, "integral of")
+    .replace(/\b∞\b/g, "infinity")
+    .replace(/\b±\b/g, " plus or minus ")
+    .replace(/\b≠\b/g, " is not equal to ")
+    .replace(/<=|≤/g, " less than or equal to ")
+    .replace(/>=|≥/g, " greater than or equal to ")
+    .replace(/×/g, " times ")
+    .replace(/÷/g, " divided by ")
+    .replace(/\b(\d+)\s*\/\s*(\d+)\b/g, "$1 divided by $2")
+    .replace(/\b([a-zA-Z])\s*\/\s*([a-zA-Z])\b/g, "$1 divided by $2")
+    .replace(/\b([xyabc])\^2\b/gi, "$1 squared")
+    .replace(/\b([xyabc])\^3\b/gi, "$1 cubed")
     .replace(/\^2|²/g, " squared")
     .replace(/\^3|³/g, " cubed")
+    .replace(/(\d+)\s*%/g, "$1 percent")
     .replace(/\be\.g\./gi, "for example")
     .replace(/\bi\.e\./gi, "that is")
     .replace(/\bvs\.?\b/gi, "versus")
@@ -469,13 +510,13 @@ export function prepareSpeech(raw: string, lang: string) {
 }
 
 export function ratePercent(speed: number) {
-  // 1x sits under the neural default so a sentence has room to sound spoken.
-  if (speed >= 2) return "+14%";
-  if (speed >= 1.8) return "+8%";
-  if (speed >= 1.5) return "+0%";
-  if (speed >= 1.25) return "-4%";
-  if (speed >= 1) return "-8%";
-  return "-16%";
+  // Edge fallback only. Gemini TTS ignores this and uses a spoken style instead.
+  if (speed >= 2) return "+10%";
+  if (speed >= 1.8) return "+4%";
+  if (speed >= 1.5) return "-2%";
+  if (speed >= 1.25) return "-8%";
+  if (speed >= 1) return "-12%";
+  return "-18%";
 }
 
 export function escapeXml(text: string) {

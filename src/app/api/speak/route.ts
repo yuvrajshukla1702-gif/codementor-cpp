@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { synthesize } from "@/lib/edge-tts";
+import { synthesizeGemini } from "@/lib/gemini-tts";
 import { prepareSpeech, ratePercent } from "@/lib/pronounce";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -23,6 +25,19 @@ export async function POST(req: Request) {
   const rate = body.ratePercent ? String(body.ratePercent) : ratePercent(speed);
 
   try {
+    const gemini = await synthesizeGemini(prepared.text, lang, speed, req.signal);
+    if (gemini) {
+      return new NextResponse(new Uint8Array(gemini.buffer), {
+        status: 200,
+        headers: {
+          "Content-Type": gemini.mime,
+          "Cache-Control": "private, max-age=3600",
+          "X-Voice": gemini.voice,
+          "X-Voice-Model": gemini.model,
+        },
+      });
+    }
+
     const audio = await synthesize(prepared.text, prepared.voice, rate);
     return new NextResponse(new Uint8Array(audio), {
       status: 200,
