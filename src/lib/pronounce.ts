@@ -33,6 +33,67 @@ const HI: Record<string, string> = {
   answer: "answer",
   chalo: "चलो",
   bilkul: "बिलकुल",
+  poocha: "पूछा",
+  poochha: "पूछा",
+  pucha: "पूछा",
+  puchha: "पूछा",
+  kaun: "कौन",
+  kaunse: "कौनसे",
+  kaunsa: "कौनसा",
+  kaunsi: "कौनसी",
+  chal: "चल",
+  chali: "चली",
+  chalta: "चलता",
+  chalte: "चलते",
+  chalegi: "चलेगी",
+  kitni: "कितनी",
+  kitna: "कितना",
+  kitne: "कितने",
+  door: "दूर",
+  dur: "दूर",
+  doori: "दूरी",
+  nahin: "नहीं",
+  haan: "हाँ",
+  han: "हाँ",
+  aa: "आ",
+  aaya: "आया",
+  aayi: "आई",
+  aaye: "आए",
+  aaega: "आएगा",
+  hoga: "होगा",
+  hogi: "होगी",
+  honge: "होंगे",
+  tha: "था",
+  ne: "ने",
+  samajh: "समझ",
+  theek: "ठीक",
+  thik: "ठीक",
+  zaroor: "ज़रूर",
+  zaroori: "ज़रूरी",
+  sawal: "सवाल",
+  sawaal: "सवाल",
+  dhyaan: "ध्यान",
+  pehley: "पहले",
+  chaahiye: "चाहिए",
+  kyaa: "क्या",
+  nahee: "नहीं",
+  teen: "तीन",
+  paanch: "पाँच",
+  panch: "पाँच",
+  das: "दस",
+  sau: "सौ",
+  hazaar: "हज़ार",
+  waala: "वाला",
+  waali: "वाली",
+  waale: "वाले",
+  isme: "इसमें",
+  usme: "उसमें",
+  inme: "इनमें",
+  aap: "आप",
+  aapko: "आपको",
+  ji: "जी",
+  rahega: "रहेगा",
+  rahegi: "रहेगी",
   se: "से",
   shuru: "शुरू",
   karte: "करते",
@@ -232,8 +293,53 @@ const TECH = new Set(
   ].map((s) => s.toLowerCase())
 );
 
+const KEEP = new Set(
+  [
+    "the", "a", "an", "of", "for", "in", "on", "at", "by", "it", "its", "if", "than", "this", "that",
+    "these", "those", "from", "into", "with", "without", "about", "as", "per", "how", "what", "when",
+    "where", "why", "which", "who", "not", "no", "yes", "be", "been", "have", "has", "had", "did",
+    "does", "far", "go", "goes", "going", "come", "comes", "ball", "object", "car", "body", "heat",
+    "light", "sound", "wave", "force", "mass", "energy", "power", "newton", "joule", "watt", "mole",
+    "atom", "atoms", "molecule", "water", "acid", "base", "salt", "oxygen", "hydrogen", "carbon",
+    "pressure", "volume", "temperature", "degree", "degrees", "celsius", "fahrenheit", "formula",
+    "equation", "velocity", "acceleration", "momentum", "gravity", "friction", "work", "frequency",
+    "second", "seconds", "minute", "minutes", "hour", "hours", "metre", "metres", "meter", "meters",
+    "kilometre", "kilometres", "kilogram", "kilograms", "gram", "grams", "litre", "litres",
+    "equals", "equal", "times", "plus", "minus", "divided", "square", "root", "squared", "cubed",
+    "angle", "triangle", "circle", "radius", "area", "perimeter", "fraction", "decimal", "percent",
+    "average", "probability", "sine", "cosine", "tangent", "theta", "alpha", "beta", "pi",
+    "char", "bool", "int", "double", "float", "void", "public", "private", "new", "static",
+    "distance", "speed", "query", "interviewer", "correct", "wrong", "simple", "works", "because",
+    "therefore", "here", "there", "means", "called", "first", "next", "last", "between", "both",
+    "all", "some", "less", "high", "low", "big", "small", "long", "short", "give", "gives", "given",
+    "take", "takes", "using", "use", "used", "make", "makes", "made", "find", "finds", "found",
+    "print", "prints", "read", "reads", "write", "writes", "add", "adds", "subtract",
+  ].map((s) => s.toLowerCase())
+);
+
 function tidy(raw: string) {
   let text = raw
+    .replace(/H2SO4/g, "H 2 S O 4")
+    .replace(/NaOH/g, "N A O H")
+    .replace(/NaCl/g, "N A C L")
+    .replace(/\bHCl\b/g, "H C L")
+    .replace(/CO2/g, "C O 2")
+    .replace(/H2O/g, "H 2 O")
+    .replace(/\bO2\b/g, "O 2")
+    .replace(/°\s*C\b/g, " degrees celsius")
+    .replace(/°\s*F\b/g, " degrees fahrenheit")
+    .replace(/\bkm\/h(?:r)?\b/gi, "kilometres per hour")
+    .replace(/\bkm\/s\b/gi, "kilometres per second")
+    .replace(/\bcm\/s\b/gi, "centimetres per second")
+    .replace(/\bm\/s\b/gi, "metres per second")
+    .replace(/\bsqrt\s*\(([^)]+)\)/gi, "square root of $1")
+    .replace(/\^2|²/g, " squared")
+    .replace(/\^3|³/g, " cubed")
+    .replace(/\be\.g\./gi, "for example")
+    .replace(/\bi\.e\./gi, "that is")
+    .replace(/\bvs\.?\b/gi, "versus")
+    .replace(/\bapprox\.?\b/gi, "approximately")
+    .replace(/&/g, " and ")
     .replace(/O\(n\s*\*\s*n\)|O\(n²\)|O\(n\^2\)/gi, "order n squared")
     .replace(/O\(n log n\)/gi, "order n log n")
     .replace(/O\(log n\)/gi, "order log n")
@@ -252,9 +358,63 @@ function tidy(raw: string) {
     .replace(/,/g, ", ")
     .replace(/\s+/g, " ")
     .trim();
-  text = text.replace(/([.!?])\s*/g, "$1 ");
+  text = text.replace(/([.!?।])\s*/g, "$1 ");
+  text = text.replace(/\s+/g, " ").trim();
   if (text && !/[.!?।]$/.test(text)) text += ".";
-  return text.replace(/\s+/g, " ").trim();
+  return text;
+}
+
+const CONS: Array<[string, string]> = [
+  ["ksh", "क्"], ["kh", "ख्"], ["gh", "घ्"], ["ng", "ङ्"],
+  ["chh", "छ्"], ["ch", "च्"], ["jh", "झ्"], ["ny", "ञ्"],
+  ["th", "थ्"], ["dh", "ध्"], ["ph", "फ्"], ["bh", "भ्"], ["sh", "श्"],
+  ["k", "क्"], ["g", "ग्"], ["c", "च्"], ["j", "ज्"],
+  ["t", "त्"], ["d", "द्"], ["n", "न्"], ["p", "प्"], ["b", "ब्"],
+  ["m", "म्"], ["y", "य्"], ["r", "र्"], ["l", "ल्"], ["v", "व्"], ["w", "व्"],
+  ["s", "स्"], ["h", "ह्"], ["f", "फ्"], ["z", "ज़्"], ["q", "क़्"],
+];
+
+const VOWELS: Array<[string, string, string]> = [
+  ["aa", "आ", "ा"], ["ai", "ऐ", "ै"], ["au", "औ", "ौ"],
+  ["ee", "ई", "ी"], ["ii", "ई", "ी"], ["oo", "ऊ", "ू"],
+  ["a", "अ", ""], ["i", "इ", "ि"], ["u", "उ", "ु"], ["e", "ए", "े"], ["o", "ओ", "ो"],
+];
+
+function romanToDeva(word: string) {
+  const s = word.toLowerCase();
+  let i = 0;
+  let out = "";
+  let pending = "";
+  while (i < s.length) {
+    const c = CONS.find(([k]) => s.startsWith(k, i));
+    if (c) {
+      if (pending) out += pending.slice(0, -1);
+      pending = c[1];
+      i += c[0].length;
+      continue;
+    }
+    const v = VOWELS.find(([k]) => s.startsWith(k, i));
+    if (v) {
+      if (pending) {
+        out += pending.slice(0, -1) + v[2];
+        pending = "";
+      } else out += v[1];
+      i += v[0].length;
+      continue;
+    }
+    if (pending) {
+      out += pending.slice(0, -1);
+      pending = "";
+    }
+    out += s[i];
+    i++;
+  }
+  if (pending) out += pending.slice(0, -1);
+  return out;
+}
+
+function looksHindi(word: string) {
+  return /(?:aa|ee|oo|kh|gh|bh|dh|ph|chh|ksh)/.test(word) || /(?:karo|karte|karna|raha|rahi|rahe|gaya|gayi|wala|wali|nahi|chahiye|pehle|kyunki|isliye|dekho|suno|chalo|theek|accha|galat|sahi|pooch|kaun)$/.test(word);
 }
 
 function tokenToSpeak(token: string) {
@@ -262,12 +422,14 @@ function tokenToSpeak(token: string) {
   if (!m) return token;
   const [, pre, word, post] = m;
   const key = word.toLowerCase();
-  if (TECH.has(key)) return `${pre}${word}${post}`;
   if (Object.prototype.hasOwnProperty.call(HI, key)) {
     const hi = HI[key];
     if (!hi) return pre + post;
+    if (/^[A-Za-z]/.test(hi)) return `${pre}${word}${post}`;
     return `${pre}${hi}${post}`;
   }
+  if (TECH.has(key) || KEEP.has(key) || key.length === 1) return `${pre}${word}${post}`;
+  if (looksHindi(key)) return `${pre}${romanToDeva(key)}${post}`;
   return `${pre}${word}${post}`;
 }
 
@@ -280,39 +442,40 @@ export function hinglishSpeak(raw: string) {
     .trim();
 }
 
-export function naturalHinglish(raw: string) {
-  // Keep roman Hinglish. Indian English neural voices sound far more natural
-  // on this than forced Devanagari word swaps. Leave the full stops so the voice can breathe.
-  return tidy(raw)
-    .replace(/\bchahiye\b/gi, "chaahiye")
-    .replace(/\bkyunki\b/gi, "kyoon ki")
-    .replace(/\bkya\b/gi, "kyaa")
-    .replace(/\bnahi\b/gi, "nahee")
-    .replace(/\bdhyan\b/gi, "dhyaan")
-    .replace(/\bpehle\b/gi, "pehley");
+function repairHindi(text: string) {
+  return text
+    .replace(/ऐरे/g, "array")
+    .replace(/इंडेक्स/g, "index")
+    .replace(/स्टैक/g, "stack")
+    .replace(/लूप/g, "loop")
+    .replace(/पॉइन्टर/g, "pointer")
+    .replace(/पॉइंटर/g, "pointer")
+    .replace(/विंडो/g, "window")
+    .replace(/हैश मैप/g, "hash map")
+    .replace(/हैश/g, "hash")
+    .replace(/स्ट्रिंग/g, "string")
+    .replace(/फंक्शन/g, "function")
+    .replace(/क्लास/g, "class")
+    .replace(/टारगेट/g, "target");
 }
 
 export function prepareSpeech(raw: string, lang: string) {
   const text = tidy(raw);
   if (lang === "english") {
-    return { text, voice: "en-US-AndrewMultilingualNeural", rate: "-2%" };
+    return { text, voice: "en-IN-NeerjaExpressiveNeural", rate: "-8%" };
   }
-  if (lang === "hindi") {
-    const spoken = /[\u0900-\u097F]/.test(text) ? text : hinglishSpeak(text);
-    return { text: spoken, voice: "hi-IN-SwaraNeural", rate: "-2%" };
-  }
-  // Hinglish stays on an Indian voice so the Hindi words are said naturally.
-  return { text: naturalHinglish(text), voice: "en-IN-NeerjaNeural", rate: "-2%" };
+  const spoken = /[\u0900-\u097F]/.test(text) ? repairHindi(text) : hinglishSpeak(text);
+  return { text: spoken, voice: "hi-IN-SwaraNeural", rate: "-8%" };
 }
 
 export function ratePercent(speed: number) {
-  // Neural voices already talk a bit fast. 1x sits just under their default so it sounds spoken.
-  if (speed >= 2) return "+22%";
-  if (speed >= 1.8) return "+16%";
-  if (speed >= 1.5) return "+8%";
-  if (speed >= 1.25) return "+2%";
-  if (speed >= 1) return "-2%";
-  return "-12%";
+  // 1x sits under the neural default so a sentence has room to sound spoken.
+  if (speed >= 2) return "+14%";
+  if (speed >= 1.8) return "+8%";
+  if (speed >= 1.5) return "+0%";
+  if (speed >= 1.25) return "-4%";
+  if (speed >= 1) return "-8%";
+  return "-16%";
 }
 
 export function escapeXml(text: string) {
@@ -324,13 +487,13 @@ export function escapeXml(text: string) {
     .replace(/'/g, "&apos;");
 }
 
-/** One prosody block. Sentence stops stay in the text so the voice breathes. Break tags make Edge hang up. */
+/** One prosody block. Sentence stops stay in the text so the voice breathes. Extra tags make Edge hang up. */
 export function toSsml(text: string, voice: string, rate: string) {
-  const lang = voice.startsWith("hi-") ? "hi-IN" : "en-IN";
+  const lang = voice.startsWith("hi-") ? "hi-IN" : voice.startsWith("en-US") ? "en-US" : voice.startsWith("en-GB") ? "en-GB" : "en-IN";
   const safe = escapeXml(text);
   return (
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${lang}">` +
-    `<voice name="${voice}"><prosody rate="${rate}" pitch="+1Hz">${safe}</prosody></voice>` +
+    `<voice name="${voice}"><prosody rate="${rate}">${safe}</prosody></voice>` +
     `</speak>`
   );
 }

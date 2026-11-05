@@ -7,10 +7,10 @@ import { Icon } from "@/components/ui/icons";
 import type { ShowScene, TeacherShowScript } from "@/lib/teacher-shows";
 import { estimateSecs, fetchSpeechCached, prefetchSpeech, type VoiceLang } from "@/lib/speech-cache";
 
-function lineOf(step: TeacherShowScript["steps"][number], lang: VoiceLang) {
-  if (lang === "english") return step.sayEn || step.say;
-  if (lang === "hindi") return step.sayHi || step.sayEn || step.say;
-  return step.say;
+function lineOf(step: TeacherShowScript["steps"][number], lang: VoiceLang): string {
+  if (lang === "english") return step.sayEn || step.say || "";
+  if (lang === "hindi") return step.sayHi || step.say || step.sayEn || "";
+  return step.say || "";
 }
 
 function captionOf(step: TeacherShowScript["steps"][number], lang: VoiceLang) {
@@ -37,6 +37,18 @@ const SCENE_STAMP: Record<ShowScene, string> = {
   cost: "Cost",
 };
 
+const SCHOOL_STAMP: Record<ShowScene, string> = {
+  ask: "Question",
+  deal: "Remember",
+  reject: "A mix-up",
+  idea: "The idea",
+  trick: "The idea",
+  walk: "Watch",
+  win: "Answer",
+  warn: "Careful",
+  cost: "The rule",
+};
+
 function sceneOf(chapter?: string, explicit?: ShowScene): ShowScene | null {
   if (explicit) return explicit;
   const c = (chapter || "").toLowerCase();
@@ -52,11 +64,12 @@ function sceneOf(chapter?: string, explicit?: ShowScene): ShowScene | null {
   return null;
 }
 
-function StoryHead({ scene, title }: { scene: ShowScene; title: string }) {
+function StoryHead({ scene, title, school }: { scene: ShowScene; title: string; school?: boolean }) {
   const big = scene === "ask" || scene === "reject" || scene === "trick" || scene === "win";
+  const stamp = (school ? SCHOOL_STAMP : SCENE_STAMP)[scene];
   return (
     <div className="mb-2 w-full max-w-3xl px-4 text-center">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">{SCENE_STAMP[scene]}</p>
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">{stamp}</p>
       <p
         className={`cm-slam font-display text-white ${big ? "text-4xl leading-[1.02] sm:text-6xl" : "text-2xl leading-tight sm:text-4xl"} ${
           scene === "reject" ? "cm-struck text-white/70" : ""
@@ -98,7 +111,7 @@ function speakWithBrowser(text: string, lang: VoiceLang): Promise<boolean> {
   if (!synth || !text.trim()) return Promise.resolve(false);
   return new Promise((resolve) => {
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = lang === "hindi" ? "hi-IN" : "en-IN";
+    utter.lang = lang === "english" ? "en-IN" : "hi-IN";
     utter.rate = lang === "english" ? 1 : 0.96;
     utter.voice = pickBrowserVoice(lang);
     let done = false;
@@ -578,7 +591,7 @@ export function TeacherShow({
               {scene === "walk" ? (
                 <p className="cm-slam mb-4 max-w-xl text-center font-display text-2xl leading-tight text-white sm:text-3xl">{boardTitle}</p>
               ) : scene ? (
-                <StoryHead scene={scene} title={boardTitle} />
+                <StoryHead scene={scene} title={boardTitle} school={/school lesson/i.test(script.subtitle)} />
               ) : (
               <div
                 className={`w-full max-w-3xl rounded-lg border border-white/10 bg-[#0c1219]/90 px-3 shadow-inner sm:px-4 ${
