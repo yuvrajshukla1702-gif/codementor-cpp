@@ -47,7 +47,8 @@ function difficulty(x: unknown): Hook["difficulty"] {
 
 export function readHook(o: Obj): Hook {
   const kindRaw = str(o.kind, 12).toLowerCase();
-  const kind: Hook["kind"] = kindRaw === "code" ? "code" : kindRaw === "concept" ? "concept" : "problem";
+  const kind: Hook["kind"] =
+    kindRaw === "code" ? "code" : kindRaw === "concept" ? "concept" : kindRaw === "lesson" ? "lesson" : "problem";
   return {
     kind,
     title: str(o.title, 90) || "Your question",
@@ -134,6 +135,12 @@ export function validateSolve(x: unknown): SolveResult {
   const solution = c ? str(c.solution, 14_000) : "";
   const driver = c ? str(c.driver, 6_000) : "";
   if (hook.offTopic) return { hook, explain, viz, tests, code: null, sampleIndex: 0 };
+  if (hook.kind === "lesson") {
+    if (!explain.summary && !explain.intuition.length && !explain.approach.steps.length) {
+      throw new ShapeError("a lesson needs explain.summary and a walk in explain.intuition");
+    }
+    return { hook, explain, viz, tests: [], code: null, sampleIndex: 0 };
+  }
   if (!explain.approach.name || explain.approach.name === "Approach") {
     if (!explain.approach.steps.length && !explain.summary) throw new ShapeError('"explain.approach" is missing');
   }

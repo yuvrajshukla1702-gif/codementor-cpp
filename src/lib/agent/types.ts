@@ -7,12 +7,12 @@ export type AgentLang = "english" | "hinglish" | "hindi";
 export type Stage = "hook" | "solve" | "verify" | "repair" | "trace" | "narrate" | "done";
 
 export type Hook = {
-  kind: "problem" | "code" | "concept";
+  kind: "problem" | "code" | "concept" | "lesson";
   title: string;
   restated: string;
   difficulty: "Easy" | "Medium" | "Hard" | null;
   topics: string[];
-  /** True when the question is not about programming / CS at all. */
+  /** True when the question is not something this tutor should teach. */
   offTopic: boolean;
 };
 

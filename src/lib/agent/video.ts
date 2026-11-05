@@ -107,3 +107,88 @@ export function buildScript(a: {
     practiceIds: [],
   };
 }
+
+/** School lesson: title, the idea, one card per worked moment, then the answer. No code on the board. */
+export function buildLessonScript(a: {
+  id: string;
+  hook: Hook;
+  explain: Explain;
+  moments: string[];
+  en: Narration | null;
+  hing: Narration | null;
+}): TeacherShowScript {
+  const { hook, explain, moments, en, hing } = a;
+  const steps: ShowStep[] = [];
+
+  const add = (step: Omit<ShowStep, "say" | "sayEn">, say: { en: string; hing?: string }) => {
+    const text = say.en || say.hing || "";
+    if (!text) return;
+    steps.push({ ...step, sayEn: say.en || say.hing || "", say: pick(say.hing, say.en) });
+  };
+
+  const clip = (s: string, n: number) => s.replace(/\s+/g, " ").trim().slice(0, n);
+
+  add(
+    { chapter: "Hook", scene: "ask", board: hook.title, gesture: "explain" },
+    { en: pick(en?.hook, hook.restated, explain.summary), hing: hing?.hook },
+  );
+
+  if (explain.brute) {
+    add(
+      { chapter: "A common mix-up", scene: "reject", board: clip(explain.brute.idea, 90), gesture: "think" },
+      { en: pick(en?.brute, explain.brute.idea), hing: hing?.brute },
+    );
+  }
+
+  add(
+    { chapter: "The idea", scene: "trick", board: explain.approach.name, gesture: "write" },
+    { en: pick(en?.idea, explain.approach.why, explain.analogy, explain.intuition[0]), hing: hing?.idea },
+  );
+
+  moments.forEach((moment, i) => {
+    const line = clip(moment, 220);
+    const enLine = pick(en?.events[i], line);
+    const hingLine = pick(hing?.events[i], en?.events[i] ? "" : line);
+    steps.push({
+      chapter: `Step ${i + 1}`,
+      scene: "walk",
+      board: clip(line, 90),
+      gesture: "explain",
+      say: pick(hingLine, enLine),
+      sayEn: enLine,
+    });
+  });
+
+  const answer = pick(explain.keyPoints?.[0], explain.summary, hook.restated);
+  add(
+    { chapter: "Answer", scene: "win", board: clip(answer, 48) || "Answer", gesture: "celebrate" },
+    { en: pick(en?.result, answer), hing: hing?.result },
+  );
+
+  const cost = [explain.approach.time, explain.approach.space].filter((s) => s && s !== "—" && s !== "-");
+  if (cost.length && (en?.complexity || explain.approach.why)) {
+    add(
+      { chapter: "The rule", scene: "cost", board: clip(cost.join("  ·  "), 48), gesture: "explain" },
+      { en: pick(en?.complexity, explain.approach.why), hing: hing?.complexity },
+    );
+  }
+
+  const pit = pick(en?.pitfall, explain.pitfalls[0]);
+  if (pit) {
+    add(
+      { chapter: "Watch out", scene: "warn", board: clip(pit, 90), gesture: "point" },
+      { en: pit, hing: hing?.pitfall },
+    );
+  }
+
+  const mins = Math.max(1, Math.round((steps.length * 6) / 60));
+  return {
+    id: a.id,
+    title: hook.title,
+    subtitle: "School lesson, walked with one real example",
+    kind: "array-scan",
+    durationHint: `~${mins} min`,
+    steps,
+    practiceIds: [],
+  };
+}

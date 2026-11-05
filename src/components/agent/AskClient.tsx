@@ -42,7 +42,7 @@ const ERROR_TITLES: Record<string, string> = {
   network: "Could not reach the AI",
   timeout: "That took too long",
   output: "The AI's answer was not usable",
-  off_topic: "That is not a programming question",
+  off_topic: "That is outside what this tutor teaches",
   bad_request: "Check the question",
   busy: "The agent is busy",
   internal: "Something broke on the server",
@@ -564,8 +564,8 @@ export default function AskClient({ initialQ = "" }: { initialQ?: string }) {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 px-1 py-6 sm:px-3 sm:py-8">
       <PageHeader eyebrow="Ask AI" title="Ask anything." accent="Watch it taught.">
-        Paste a problem, some buggy code, or just a question. You get a whiteboard video with a voice-over, a step-by-step dry run, a plain explanation and C++ that
-        has really been compiled and tested.
+        Ask a coding problem, or a physics, chemistry, or maths question. You get a whiteboard video with a voice-over. Coding answers are compiled and tested. School
+        answers walk one real example out loud.
       </PageHeader>
 
       <StatusRow

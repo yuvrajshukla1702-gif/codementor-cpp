@@ -19,6 +19,8 @@ import {
   FOLLOWUP_SYSTEM,
   NARRATE_ENGLISH,
   NARRATE_HINGLISH,
+  NARRATE_LESSON_ENGLISH,
+  NARRATE_LESSON_HINGLISH,
   REPAIR_SYSTEM,
   LANGS_SYSTEM,
   SOLVE_SYSTEM,
@@ -44,7 +46,7 @@ import {
   validateTranslate,
   type Narration,
 } from "./validate";
-import { buildScript } from "./video";
+import { buildLessonScript, buildScript } from "./video";
 
 const MAX_REPAIRS = 2;
 const VIDEO_STEPS = 12;
@@ -239,7 +241,7 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
         const h = readHook(partial);
         if (!h.offTopic) {
           emit({ t: "hook", data: h, provider: label() });
-          status("solve", "Writing the solution");
+          status("solve", h.kind === "lesson" ? "Writing the lesson" : "Writing the solution");
         }
       }
       if (key === "explain" && value && typeof value === "object" && Object.keys(value as object).length) {
@@ -260,12 +262,61 @@ export async function runAgent({ question, cfg, emit, signal }: RunOpts): Promis
       emit({
         t: "error",
         code: "off_topic",
-        message: sd.hook.restated || "I can only help with programming, data structures, algorithms and computer science.",
+        message: sd.hook.restated || "I can help with programming, physics, chemistry, and mathematics.",
       });
       return;
     }
     emit({ t: "hook", data: sd.hook, provider: label() });
     emit({ t: "explain", data: sd.explain });
+
+    if (sd.hook.kind === "lesson") {
+      status("narrate", "Recording the voice-over");
+      const moments = (sd.explain.intuition.length ? sd.explain.intuition : sd.explain.approach.steps).slice(0, 6);
+      if (!moments.length && sd.explain.summary) moments.push(sd.explain.summary);
+      const lessonEvents = moments.map((note, i) => ({
+        i,
+        note,
+        code: "",
+        state: note.replace(/\s+/g, " ").slice(0, 180),
+      }));
+      const sampleLine = sd.explain.keyPoints?.[0] ?? sd.explain.summary ?? sd.hook.title;
+      let lessonEn: Narration | null = null;
+      let lessonHing: Narration | null = null;
+      if (lessonEvents.length) {
+        const user = narrateUser({
+          hook: sd.hook,
+          explain: sd.explain,
+          sampleInput: sampleLine,
+          output: sampleLine,
+          events: lessonEvents,
+        });
+        const call = (tag: string, system: string) =>
+          llmJson(
+            cfg,
+            { tag, system, user, temperature: 0.4, maxTokens: 2600, think: "off", timeoutMs: 90_000, signal },
+            validateNarration(lessonEvents.length),
+          );
+        lessonEn = await call("narrate-english", NARRATE_LESSON_ENGLISH).then((v) => v.data).catch(() => null);
+        lessonHing = await call("narrate-hinglish", NARRATE_LESSON_HINGLISH).then((v) => v.data).catch(() => null);
+      }
+      if (aborted()) return;
+      emit({
+        t: "video",
+        data: buildLessonScript({
+          id: `ask-${t0.toString(36)}`,
+          hook: sd.hook,
+          explain: sd.explain,
+          moments,
+          en: lessonEn,
+          hing: lessonHing,
+        }),
+        machineTraced: false,
+        narrated: !!(lessonEn || lessonHing),
+      });
+      status("done", "Done");
+      emit({ t: "done", ms: since() });
+      return;
+    }
 
     let solution = sd.code!.solution;
     let driver = sd.code!.driver;

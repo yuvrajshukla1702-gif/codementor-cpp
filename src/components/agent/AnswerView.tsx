@@ -700,6 +700,8 @@ export function AnswerView({
 
   const { hook } = run;
   if (!hook) return null;
+  const lesson = hook.kind === "lesson";
+  const kindPill = hook.kind === "lesson" ? "Lesson" : hook.kind === "concept" ? "Concept" : "Your code";
 
   function pickLang(id: CodeLang) {
     setPicked(id);
@@ -711,7 +713,7 @@ export function AnswerView({
       <header className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
           {hook.difficulty && <Pips difficulty={hook.difficulty} label />}
-          {hook.kind !== "problem" && <Pill tone="info">{hook.kind === "concept" ? "Concept" : "Your code"}</Pill>}
+          {hook.kind !== "problem" && <Pill tone="info">{kindPill}</Pill>}
           {hook.topics.map((t) => (
             <span key={t} className="chip">
               {t}
@@ -726,8 +728,8 @@ export function AnswerView({
         {hook.restated && <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-[var(--muted)]">{hook.restated}</p>}
       </header>
 
-      <LangBar lang={lang} busy={langBusy && !run.langs} onPick={pickLang} />
-      {langErr && !run.langs && (
+      {!lesson && <LangBar lang={lang} busy={langBusy && !run.langs} onPick={pickLang} />}
+      {!lesson && langErr && !run.langs && (
         <p className="flex items-start gap-2 text-sm text-[var(--gold)]">
           <Icon name="info" size={14} className="mt-0.5 shrink-0" />
           {langErr} Trying again in a few seconds.
@@ -735,7 +737,7 @@ export function AnswerView({
       )}
 
       <div className="space-y-3">
-        <VerifyBanner verify={run.verify} pending={run.running} hasCode={!!run.code} />
+        {!lesson && <VerifyBanner verify={run.verify} pending={run.running} hasCode={!!run.code} />}
         <div className="overflow-hidden rounded-xl">
           {run.video ? (
             <TeacherShow key={run.video.id} script={run.video} hidePractice onLangChange={onLang} />
@@ -755,10 +757,13 @@ export function AnswerView({
         )}
         {run.video && !run.narrated && (
           <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
-            <Icon name="info" size={13} className="mt-px shrink-0" /> The AI could not write the voice-over this time, so these are plain captions built from the real run.
+            <Icon name="info" size={13} className="mt-px shrink-0" />{" "}
+            {lesson
+              ? "The voice-over did not come back this time, so these are plain captions from the lesson."
+              : "The AI could not write the voice-over this time, so these are plain captions built from the real run."}
           </p>
         )}
-        {run.video && run.machineTraced === false && (
+        {run.video && !lesson && run.machineTraced === false && (
           <p className="flex items-start gap-2 text-xs text-[var(--gold)]">
             <Icon name="info" size={13} className="mt-px shrink-0" /> This walk-through was worked out by the AI, not by executing the code.
           </p>
@@ -776,25 +781,31 @@ export function AnswerView({
         />
       </section>
 
-      <section className="card p-5 sm:p-6">
-        <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Dry run</h3>
-        <DryTab run={run} />
-      </section>
+      {!lesson && (
+        <section className="card p-5 sm:p-6">
+          <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Dry run</h3>
+          <DryTab run={run} />
+        </section>
+      )}
 
-      <section id="answer-code" className="card scroll-mt-20 overflow-hidden">
-        <h3 className="px-5 pt-5 text-sm font-semibold text-[var(--ink)] sm:px-6">Code</h3>
-        <div className="mt-3">
-          <LangBar lang={lang} busy={langBusy && !run.langs} onPick={(id) => setPicked(id)} />
-        </div>
-        <div className="p-5 sm:p-6">
-          <CodeTab run={run} lang={lang} busy={langBusy} err={langErr} onRetry={() => void loadLangs()} />
-        </div>
-      </section>
+      {!lesson && (
+        <section id="answer-code" className="card scroll-mt-20 overflow-hidden">
+          <h3 className="px-5 pt-5 text-sm font-semibold text-[var(--ink)] sm:px-6">Code</h3>
+          <div className="mt-3">
+            <LangBar lang={lang} busy={langBusy && !run.langs} onPick={(id) => setPicked(id)} />
+          </div>
+          <div className="p-5 sm:p-6">
+            <CodeTab run={run} lang={lang} busy={langBusy} err={langErr} onRetry={() => void loadLangs()} />
+          </div>
+        </section>
+      )}
 
-      <section className="card p-5 sm:p-6">
-        <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Try it</h3>
-        <TryTab key={run.id} run={run} />
-      </section>
+      {!lesson && (
+        <section className="card p-5 sm:p-6">
+          <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Try it</h3>
+          <TryTab key={run.id} run={run} />
+        </section>
+      )}
 
       <section id="answer-ask" className="card scroll-mt-20 p-5 sm:p-6">
         <h3 className="mb-4 text-sm font-semibold text-[var(--ink)]">Ask more</h3>
