@@ -84,11 +84,20 @@ export async function POST(req: Request) {
           /* the browser went away */
         }
       };
+      // A quiet stretch (the compiler, then the voice-over) makes some networks drop the stream.
+      const beat = setInterval(() => {
+        try {
+          controller.enqueue(enc.encode("\n"));
+        } catch {
+          /* the browser went away */
+        }
+      }, 8000);
       try {
         await runAgent({ question: demoId ? (demoById(demoId)?.question ?? "") : question, cfg: active, emit: send, signal: ac.signal });
       } catch (err) {
         send({ t: "error", code: "internal", message: err instanceof Error ? err.message : "Something went wrong." });
       } finally {
+        clearInterval(beat);
         finish();
         try {
           controller.close();

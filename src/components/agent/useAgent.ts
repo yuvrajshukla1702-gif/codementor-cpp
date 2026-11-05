@@ -207,7 +207,12 @@ export function useAgent() {
           }
         }
         if (cur.running) {
-          push({ t: "error", code: "network", message: "The connection dropped before the answer was finished. Try again." });
+          if (cur.hook && cur.code) {
+            cur = { ...cur, running: false, stage: "done", ms: performance.now() - cur.startedAt };
+            setRun(cur);
+          } else {
+            push({ t: "error", code: "network", message: "The connection dropped before the answer was finished. Try again." });
+          }
         }
       } catch (err) {
         if (ac.signal.aborted) {
@@ -215,7 +220,17 @@ export function useAgent() {
           setRun(cur);
           return;
         }
-        push({ t: "error", code: "network", message: err instanceof Error ? err.message : "Could not reach the server." });
+        // The code already arrived. A dropped connection should not hide it.
+        if (cur.hook && cur.code) {
+          cur = { ...cur, running: false, stage: "done", ms: performance.now() - cur.startedAt };
+          setRun(cur);
+          return;
+        }
+        const raw = err instanceof Error ? err.message : "Could not reach the server.";
+        const message = /network error|failed to fetch|load failed/i.test(raw)
+          ? "The connection dropped before an answer came back. Ask again."
+          : raw;
+        push({ t: "error", code: "network", message });
       } finally {
         if (abortRef.current === ac) abortRef.current = null;
         const answer = toAnswer(cur);

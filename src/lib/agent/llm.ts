@@ -309,6 +309,7 @@ async function geminiOnce(
   let lastQuota: LlmError | null = null;
   let timeouts = 0;
   let quotaTries = 0;
+  const retriedNet = new Set<string>();
   for (let i = 0; i < candidates.length; i++) {
     const model = candidates[i];
     if ((quotaUntil.get(model) ?? 0) > Date.now()) continue;
@@ -330,6 +331,15 @@ async function geminiOnce(
         if (geminiModel === model) geminiModel = null;
         if (timeouts >= 2) throw err;
         continue;
+      }
+      if (err instanceof LlmError && err.kind === "network") {
+        if (!retriedNet.has(model)) {
+          retriedNet.add(model);
+          await sleep(1200, call.signal);
+          i -= 1;
+          continue;
+        }
+        throw err;
       }
       if (quota) {
         quotaTries += 1;

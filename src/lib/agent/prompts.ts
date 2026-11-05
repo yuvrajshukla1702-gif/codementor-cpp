@@ -61,6 +61,7 @@ OUTPUT: exactly one JSON object and nothing else. Write the keys in THIS order: 
     - Names a person would say: left, right, seen, best, count, stack. Use i for a loop index. Do not use mp, ans, res, cur, or tmp.
     Insert exactly 3 TR("note", var1, var2, ...); statements, not more. Rules: each TR is ONE complete line on its own; inside if/else/for/while it must sit inside braces (never the unbraced body); the note is at most 8 plain words; the variables are in-scope names. Do not add a line of code just so a TR has somewhere to sit. No TR may fire more than about 25 times on tests[0]. TR is deleted before the student sees the code. Use TR in solution only.
   - driver: a complete int main() (plus helper functions above it if you need them) that reads the test input from stdin in exactly the format your tests use, calls the solution, and prints ONLY the answer. Print a canonical form: true / false for booleans, numbers separated by single spaces on one line for vectors, sort the output when order does not matter, no labels, no extra text. Strip a trailing '\\r' when reading lines.
+    When the student asks for a program, simple code, or the inputs written inside the code: main does not read cin. It writes the sample in the source, the way a beginner program does, for example vector<int> candidates = {2, 3, 6, 7}; int target = 7; then it calls the function and prints the answer. Use one test. input may be "". expected is exactly what that main prints.
   - inputFormat and outputFormat: one short sentence each.
 - sampleIndex: 0.
 

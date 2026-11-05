@@ -292,9 +292,13 @@ function CodeTab({
   const c = run.code;
   if (!c) return <Pending label="Writing the solution" />;
 
+  const wholeProgram = /program|simple code|inputs? (in|inside|within)|within the code/i.test(run.question);
+  const cppCode = wholeProgram
+    ? `#include <bits/stdc++.h>\nusing namespace std;\n\n${c.solution.trim()}\n\n${c.driver.trim()}\n`
+    : c.solution.trim();
   const shown =
     lang === "cpp"
-      ? c.solution.trim()
+      ? cppCode
       : lang === "pseudo"
         ? (run.langs?.pseudocode ?? "")
         : lang === "c"
@@ -306,7 +310,9 @@ function CodeTab({
     lang === "pseudo"
       ? "The same steps, in plain English."
       : lang === "cpp"
-        ? "This is the answer, the class you paste in. It was compiled and tested."
+        ? wholeProgram
+          ? "This is the whole program. The numbers are written in main. It was compiled and tested."
+          : "This is the answer, the class you paste in. It was compiled and tested."
         : `The same answer, as a ${lang === "c" ? "C function" : lang === "python" ? "Python class" : "Java class"}.`;
   const rows = run.tests ?? [];
   const waiting = lang !== "cpp" && !shown;
